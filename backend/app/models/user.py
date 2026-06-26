@@ -8,6 +8,7 @@ class User(Base, SoftDeleteMixin ):
 
     sessions: Mapped[list["Session"]] = relationship("Session", back_populates="user")
     uploads: Mapped[list["Upload"]] = relationship("Upload", back_populates="user")
+    audit_logs: Mapped[list["AuditLog"]] = relationship("AuditLog",back_populates="actor",)
 
     email: Mapped[str] = mapped_column(unique=True, nullable=False, type_=String(255))
     password_hash: Mapped[str] = mapped_column(nullable=False, type_= Text)
