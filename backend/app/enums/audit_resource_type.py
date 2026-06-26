@@ -5,4 +5,3 @@ class AuditResourceType(StrEnum):
     SESSION = auto()
     UPLOAD = auto()
     ANALYSIS = auto()
-    AI_RESULT = auto()
