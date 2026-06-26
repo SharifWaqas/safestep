@@ -1,197 +1,274 @@
 # 🛡️ SafeStep
 
-> **AI-powered digital safety assistant designed to help older adults recognize scams, understand suspicious digital content, and navigate the online world with confidence.**
+> **AI-powered digital safety assistant that helps people identify scams, understand suspicious digital content, and make safer online decisions.**
 
-> 🚧 **Status:** Active Development
+🚧 **Project Status:** Active Development
 
 ---
 
 ## Overview
 
-SafeStep is an AI-powered platform that analyzes screenshots, emails, text messages, and other digital content to identify potential scams and explain suspicious activity in clear, accessible language.
+SafeStep is an AI-powered platform designed to help users—especially older adults—recognize scams and understand suspicious digital content.
 
-Instead of simply labeling something as "safe" or "unsafe," SafeStep provides understandable explanations, personalized guidance, and educational insights to help users make informed decisions.
-
-The long-term goal is to improve digital safety and digital literacy, especially for older adults who are disproportionately targeted by online scams.
-
----
-
-## Motivation
-
-Millions of people receive phishing emails, fraudulent text messages, fake websites, and social engineering attacks every day.
-
-Many existing tools focus only on detection.
-
-SafeStep focuses on **understanding**.
-
-The platform explains:
+Rather than simply classifying content as **safe** or **unsafe**, SafeStep explains:
 
 * Why something appears suspicious
 * Which scam indicators were detected
-* The potential risks involved
-* What the user should do next
-* How to recognize similar scams in the future
+* The potential level of risk
+* Recommended next steps
+* Educational guidance to help users recognize similar scams in the future
+
+The goal is to improve digital safety and digital literacy through clear, accessible AI-powered explanations.
 
 ---
 
-## Current Features
+## Why SafeStep?
 
-* User management
-* SQLAlchemy database models
-* Analysis workflow architecture
-* Risk score domain model
-* AI result model
-* Upload management
-* Session management
-* Audit logging
-* Modular backend architecture
+Online scams are becoming increasingly sophisticated, targeting millions of people every year. While many existing tools focus solely on detection, they often fail to explain **why** something is dangerous.
+
+SafeStep was created to bridge that gap by combining AI analysis with human-friendly explanations, helping users build confidence when navigating emails, text messages, websites, and other digital content.
+
+---
+
+## Current Progress
+
+The project is currently under active development.
+
+### ✅ Implemented
+
 * FastAPI backend foundation
+* SQLAlchemy ORM integration
+* PostgreSQL database architecture
+* Modular backend structure
+* User domain model
+* Upload domain model
+* Analysis domain model
+* AI Result domain model
+* Risk Score domain model
+* Session management model
+* Audit Log model
+* Enum architecture
+* Database initialization
 
----
+### 🚧 In Progress
 
-## Planned Features
+* Authentication & Authorization
+* Service layer implementation
+* API endpoints
+* Business logic
+* Database migrations
 
-* Screenshot upload
+### 📌 Planned
+
+* Screenshot analysis
 * OCR pipeline
-* AI-powered screenshot analysis
+* AI-powered scam detection
 * Email analysis
 * SMS analysis
 * Website analysis
-* Risk scoring engine
-* Personalized safety guidance
+* Personalized guidance engine
 * Analysis history
-* Accessibility-focused interface
-* Authentication & authorization
+* Accessibility-focused UI
 * Docker deployment
+* Automated testing
 * CI/CD pipeline
 
 ---
 
-## Architecture
+## System Architecture
 
-```
-                User
-                  │
-                  ▼
-          Upload Screenshot
-                  │
-                  ▼
-              FastAPI API
-                  │
-                  ▼
-          Validation Layer
-                  │
-                  ▼
-            AI Analysis Engine
-                  │
-        ┌─────────┼─────────┐
-        ▼         ▼         ▼
-      OCR     Scam Analysis  Risk Scoring
-        │         │         │
-        └─────────┼─────────┘
-                  ▼
-         Guidance Generation
-                  │
-                  ▼
-            PostgreSQL Database
-                  │
-                  ▼
-            Analysis History
+```text
+                  User
+                    │
+                    ▼
+          Upload Screenshot / Email / Text
+                    │
+                    ▼
+               FastAPI Backend
+                    │
+                    ▼
+            Validation & Processing
+                    │
+                    ▼
+              AI Analysis Engine
+          ┌─────────┼─────────┐
+          ▼         ▼         ▼
+        OCR     Scam Analysis  Risk Scoring
+          │         │         │
+          └─────────┼─────────┘
+                    ▼
+          Guidance Generation
+                    │
+                    ▼
+              PostgreSQL Database
+                    │
+                    ▼
+             Analysis History
 ```
 
 ---
 
-## Tech Stack
+## Technology Stack
 
-### Backend
+| Layer          | Technologies                    |
+| -------------- | ------------------------------- |
+| **Backend**    | Python, FastAPI                 |
+| **Database**   | PostgreSQL                      |
+| **ORM**        | SQLAlchemy                      |
+| **Validation** | Pydantic                        |
+| **Frontend**   | Next.js, TypeScript *(planned)* |
+| **AI**         | OpenAI Vision *(planned)*       |
+| **OCR**        | Planned                         |
+| **Deployment** | Docker *(planned)*              |
+| **CI/CD**      | GitHub Actions *(planned)*      |
 
-* Python
-* FastAPI
-* SQLAlchemy
-* PostgreSQL
-* Pydantic
+---
 
-### Frontend
+## Engineering Highlights
 
-* Next.js
-* TypeScript
+SafeStep is being built using modern software engineering principles:
 
-### AI
-
-* OpenAI Vision
-* OCR Integration (planned)
-
-### DevOps
-
-* Docker
-* GitHub Actions (planned)
+* Modular Monolith Architecture
+* Domain-Driven Organization
+* SQLAlchemy ORM
+* RESTful API Design
+* Environment-based Configuration
+* Secure File Upload Design
+* Audit Logging
+* Risk Scoring Pipeline
+* AI Integration
+* Accessibility-First Design
+* Scalable Project Structure
 
 ---
 
 ## Project Structure
 
-```
-backend/
-    app/
-        api/
-        database/
-        models/
-        enums/
-        services/
-        schemas/
-
-frontend/
-
-docs/
+```text
+SafeStep/
+│
+├── backend/
+│   ├── app/
+│   │   ├── api/
+│   │   ├── database/
+│   │   ├── enums/
+│   │   ├── models/
+│   │   ├── schemas/
+│   │   ├── services/
+│   │   └── utils/
+│   │
+│   └── tests/
+│
+├── frontend/
+│
+├── docs/
+│
+├── .gitignore
+├── README.md
+└── LICENSE
 ```
 
 ---
 
-## Engineering Goals
+## Getting Started
 
-SafeStep is being built using production-oriented software engineering practices:
+### Clone the repository
 
-* Modular architecture
-* Domain-driven organization
-* Database normalization
-* Strong typing
-* RESTful APIs
-* Secure file handling
-* Environment-based configuration
-* Audit logging
-* Scalable backend design
+```bash
+git clone https://github.com/SharifWaqas/safestep.git
+cd safestep
+```
+
+### Create a virtual environment
+
+```bash
+python -m venv .venv
+```
+
+### Activate the virtual environment
+
+**Windows**
+
+```bash
+.venv\Scripts\activate
+```
+
+**macOS / Linux**
+
+```bash
+source .venv/bin/activate
+```
+
+### Install dependencies
+
+```bash
+pip install -r requirements.txt
+```
+
+### Configure environment variables
+
+Create a `.env` file in the project root and add the required configuration values.
+
+### Start the application
+
+```bash
+uvicorn backend.app.main:app --reload
+```
+
+> **Note:** The startup command may change as the project structure evolves.
 
 ---
 
 ## Roadmap
 
-* [x] Backend project setup
-* [x] Database architecture
-* [x] Domain models
-* [x] Core API foundation
+* [x] Repository setup
+* [x] Backend architecture
+* [x] Database design
+* [x] SQLAlchemy models
+* [x] Domain modeling
 * [ ] Authentication
-* [ ] Image upload service
+* [ ] Upload service
 * [ ] OCR integration
-* [ ] AI analysis pipeline
+* [ ] AI analysis engine
 * [ ] Risk scoring engine
-* [ ] Guidance engine
+* [ ] Guidance generation
 * [ ] Analysis history
-* [ ] Frontend interface
-* [ ] Docker deployment
+* [ ] Frontend application
+* [ ] Docker support
 * [ ] Automated testing
-* [ ] CI/CD pipeline
-* [ ] Public MVP
+* [ ] GitHub Actions CI/CD
+* [ ] Public MVP Release
 
 ---
 
-## Why I Built This
+## Project Goals
 
-I built SafeStep to combine software engineering, backend systems, AI, and accessibility into a single real-world project.
+SafeStep is intended to demonstrate:
 
-The project emphasizes clean architecture, maintainable code, and practical problem solving while addressing an important social challenge: helping people stay safe online.
+* Backend software engineering
+* API design
+* Database modeling
+* AI integration
+* Secure application architecture
+* Accessibility-focused software design
+* Production-ready development practices
+
+---
+
+## Contributing
+
+Contributions, suggestions, and feedback are welcome.
+
+As the project continues to evolve, issues and feature requests will be used to track development.
 
 ---
 
 ## License
 
 This project is licensed under the MIT License.
+
+---
+
+## Disclaimer
+
+SafeStep is an educational and research project currently under active development. AI-generated analyses are intended to assist users and should not be considered professional legal, cybersecurity, or financial advice.
