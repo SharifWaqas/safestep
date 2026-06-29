@@ -20,3 +20,7 @@ class BaseRepository(Generic[T]):
         query = select(self._model).where(self._model.id == entity_id)
         result = await self._db_session.execute(query)
         return result.scalar_one_or_none()
+
+    async def save(self, entity: T) -> T:
+        self._db_session.add(entity)
+        return entity
