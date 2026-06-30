@@ -24,3 +24,4 @@ class BaseRepository(Generic[T]):
     async def save(self, entity: T) -> T:
         self._db_session.add(entity)
         return entity
+
