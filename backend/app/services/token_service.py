@@ -32,3 +32,12 @@ class TokenService:
             )
             
         await self._session_repository.save(session)
+
+    
+    async def get_session_by_refresh_token(self,refresh_token: str) -> Session | None :
+        refresh_token_hash = self._hash_refresh_token(refresh_token)
+        result = await self._session_repository.find_by_refresh_token_hash(
+            refresh_token_hash
+        )
+        return result
+
