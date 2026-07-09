@@ -41,3 +41,11 @@ class TokenService:
         )
         return result
 
+
+    async def revoke_session(self, session: Session) -> None:
+        if session.revoked_at is not None:
+            return
+
+        session.revoked_at = datetime.now(UTC)
+
+        await self._session_repository.save(session)
