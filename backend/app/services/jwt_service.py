@@ -49,3 +49,7 @@ class JWTService:
             key=self._jwt_secret,
             algorithm=self._jwt_algorithm,
         )
+
+    @property
+    def access_token_expires_in(self) -> int:
+        return self._settings.access_token_expire_minutes * 60

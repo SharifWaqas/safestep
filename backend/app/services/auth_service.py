@@ -4,7 +4,7 @@ from backend.app.services.password_service import PasswordService
 from backend.app.services.token_service import TokenService
 from backend.app.repositories.user_repository import UserRepository
 from sqlalchemy.ext.asyncio import AsyncSession
-
+from backend.app.schemas.auth import LoginResponse
 
 
 class AuthService:
@@ -24,18 +24,22 @@ class AuthService:
         self._token_service = token_service
     
 
-    async def login(self, email: str, password: str):
+    async def login(self, email: str, password: str) -> LoginResponse:
         try:
             user = await self._user_repository.find_by_email(email)
             if user is None:
                 raise InvalidCredentialsError
-            verified_password = self._password_service.verify_password(password, user.password_hash)
-            if not verified_password:
+            if not self._password_service.verify_password(password, user.password_hash):
                 raise InvalidCredentialsError
-            access_token = self._jwt_service.create_access_token(str(user.id))
-            refresh_token = self._jwt_service.create_refresh_token(str(user.id))            
-            await self._token_service.create_session(user, refresh_token)
+            user_access_token = self._jwt_service.create_access_token(str(user.id))
+            user_refresh_token = self._jwt_service.create_refresh_token(str(user.id))            
+            await self._token_service.create_session(user, user_refresh_token)
             await self._session.commit()
+            return LoginResponse(
+                access_token=user_access_token,
+                refresh_token=user_refresh_token,
+                token_type="Bearer",
+                expires_in=self._jwt_service.access_token_expires_in,)       
         except Exception:
             await self._session.rollback()
             raise 
