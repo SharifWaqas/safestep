@@ -48,8 +48,6 @@ class TokenService:
             
         session.revoked_at = datetime.now(UTC)
 
-        await self._session_repository.save(session)
-
 
     def rotate_refresh_token(self, session : Session, new_refresh_token : str) -> None:
         hashed_refresh_token = self._hash_refresh_token(new_refresh_token)

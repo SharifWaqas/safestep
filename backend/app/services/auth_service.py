@@ -4,7 +4,7 @@ from backend.app.services.password_service import PasswordService
 from backend.app.services.token_service import TokenService
 from backend.app.repositories.user_repository import UserRepository
 from sqlalchemy.ext.asyncio import AsyncSession
-from backend.app.schemas.auth import LoginResponse, RefreshResponse
+from backend.app.schemas.auth import LoginResponse, RefreshResponse, LogoutResponse
 
 import datetime
 
@@ -80,3 +80,26 @@ class AuthService:
         except Exception:
             await self._session.rollback()
             raise
+    
+    async def logout(self, refresh_token: str) -> LogoutResponse:
+        try:
+            claims = self._jwt_service.verify_token(refresh_token)
+
+            if claims["type"] != "refresh":
+                raise InvalidCredentialsError
+            
+            session = await self._token_service.get_session_by_refresh_token(refresh_token)
+            
+            if session is None:
+                raise InvalidCredentialsError
+    
+            self._token_service.revoke_session(session)
+            await self._session.commit()
+            return LogoutResponse(
+                message="You have been successfully logged out"
+            )
+        except Exception:
+            await self._session.rollback()
+            raise
+
+        
