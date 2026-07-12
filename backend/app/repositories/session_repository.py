@@ -1,5 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from sqlalchemy.orm import joinedload
 
 from backend.app.models.session import Session
 from backend.app.repositories.base_repository import BaseRepository
@@ -12,6 +13,10 @@ class SessionRepository(BaseRepository[Session]):
 
 
     async def find_by_refresh_token_hash(self, refresh_token_hash : str) -> Session | None:
-        query = select(self._model).where(self._model.refresh_token_hash == refresh_token_hash)
+        query = ( 
+            select(self._model)
+            .options(joinedload(self._model.user))
+            .where(self._model.refresh_token_hash == refresh_token_hash)
+        )
         result = await self._db_session.execute(query)
         return result.scalar_one_or_none()

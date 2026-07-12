@@ -20,6 +20,7 @@ class RefreshRequest(BaseModel):
 
 class RefreshResponse(BaseModel):
     access_token: str
+    refresh_token: str
     token_type: Literal["Bearer"] = "Bearer"
     expires_in: int
 
