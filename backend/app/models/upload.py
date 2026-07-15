@@ -9,6 +9,7 @@ class Upload(Base, SoftDeleteMixin):
     __tablename__ = "uploads"
 
     user: Mapped["User"] = relationship("User", back_populates="uploads") 
+    analyses: Mapped[list["Analysis"]] = relationship("Analysis",back_populates="upload")
 
     user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"),nullable=False)
     storage_path: Mapped[str] = mapped_column(nullable=False, type_=Text)

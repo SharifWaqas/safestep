@@ -14,6 +14,7 @@ class Analysis(Base, SoftDeleteMixin):
 
     ai_result: Mapped["AIResult"] = relationship("AIResult", back_populates="analysis", uselist=False)
     upload: Mapped["Upload"] = relationship("Upload",back_populates="analyses")
+    risk_scores: Mapped[list["RiskScore"]] = relationship("RiskScore",back_populates="analysis",)
 
     upload_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("uploads.id"),nullable=False)
 
