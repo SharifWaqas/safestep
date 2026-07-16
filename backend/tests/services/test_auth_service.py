@@ -52,9 +52,28 @@ async def test_login_invalid_password(user_repository, password_service, user, a
 
 
 
+@pytest.mark.asyncio
+async def test_login_user_not_found(user_repository, user, auth_service, password_service, jwt_service, token_service, db_session):
+    
+    # Arrange
+    user_repository.find_by_email = AsyncMock(return_value=None)
 
-def test_login_user_not_found():
-    ...
+    # Act & Assert
+    with pytest.raises(InvalidCredentialsError):
+        await auth_service.login(user.email, "password")  
+
+    # Interaction Assertions
+    user_repository.find_by_email.assert_awaited_once_with(user.email)
+    password_service.verify_password.assert_not_called()
+    jwt_service.create_access_token.assert_not_called()
+    jwt_service.create_refresh_token.assert_not_called()
+    token_service.create_session.assert_not_called()
+    db_session.commit.assert_not_called()
+    db_session.rollback.assert_awaited_once()
+
+ 
+
+    
 
 
 def test_refresh_success():
