@@ -1,6 +1,7 @@
 import pytest
 
-from unittest.mock import AsyncMock
+from backend.app.services.exceptions import InvalidCredentialsError
+from unittest.mock import AsyncMock, MagicMock
 
 @pytest.mark.asyncio
 async def test_login_success(auth_service, user_repository, user, password_service, jwt_service, token_service, user_session, db_session):
@@ -29,9 +30,27 @@ async def test_login_success(auth_service, user_repository, user, password_servi
     jwt_service.create_refresh_token.assert_called_once_with(str(user.id))
     token_service.create_session.assert_awaited_once_with(user,"fake_refresh_token")    
 
+@pytest.mark.asyncio
+async def test_login_invalid_password(user_repository, password_service, user, auth_service, jwt_service, token_service, db_session):
+    
+    user_repository.find_by_email = AsyncMock(return_value=user)
+    password_service.verify_password = MagicMock(return_value=False)
+    
+    with pytest.raises(InvalidCredentialsError):
+        await auth_service.login(user.email, "wrong_password")
 
-def test_login_invalid_password():
-    ...
+
+    user_repository.find_by_email.assert_awaited_once_with(user.email)
+    password_service.verify_password.assert_called_once_with("wrong_password",user.password_hash)
+    jwt_service.create_access_token.assert_not_called()
+    jwt_service.create_refresh_token.assert_not_called()
+    token_service.create_session.assert_not_called()
+    db_session.commit.assert_not_called()
+    db_session.rollback.assert_awaited_once()
+
+
+
+
 
 
 def test_login_user_not_found():
