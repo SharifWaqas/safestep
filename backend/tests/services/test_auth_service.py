@@ -55,6 +55,7 @@ async def test_login_invalid_password(user_repository, password_service, user, a
 @pytest.mark.asyncio
 async def test_login_user_not_found(user_repository, user, auth_service, password_service, jwt_service, token_service, db_session):
     
+        """Login should fail when the user does not exist."""
     # Arrange
     user_repository.find_by_email = AsyncMock(return_value=None)
 
