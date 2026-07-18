@@ -55,7 +55,6 @@ async def test_login_invalid_password(user_repository, password_service, user, a
 @pytest.mark.asyncio
 async def test_login_user_not_found(user_repository, user, auth_service, password_service, jwt_service, token_service, db_session):
     
-        """Login should fail when the user does not exist."""
     # Arrange
     user_repository.find_by_email = AsyncMock(return_value=None)
 
@@ -76,9 +75,41 @@ async def test_login_user_not_found(user_repository, user, auth_service, passwor
 
     
 
+@pytest.mark.asyncio
+async def test_refresh_success(db_session, auth_service, jwt_service, token_service, user_session):
 
-def test_refresh_success():
-    ...
+    # Arrange
+    jwt_service.access_token_expires_in = 1
+    refresh_token = "dummy_refresh_token"
+    jwt_service.verify_token = MagicMock(return_value = {"type": "refresh"})
+    token_service.get_session_by_refresh_token = AsyncMock(return_value = user_session)
+    jwt_service.create_access_token = MagicMock(return_value = "new_access_token")
+    jwt_service.create_refresh_token = MagicMock(return_value = "new_refresh_token")
+    token_service.rotate_refresh_token = MagicMock()    
+
+    print(jwt_service.access_token_expires_in)
+    print(type(jwt_service.access_token_expires_in))
+    
+    # Act
+    result = await auth_service.refresh(refresh_token)
+    print(result)
+    print(result.expires_in)
+    print(auth_service._jwt_service.access_token_expires_in)
+    # Assert
+
+    assert result.access_token == "new_access_token"
+    assert result.refresh_token == "new_refresh_token"
+    assert result.token_type == "Bearer"
+    assert result.expires_in == jwt_service.access_token_expires_in
+
+    jwt_service.verify_token.assert_called_once_with(refresh_token)
+    token_service.get_session_by_refresh_token.assert_awaited_once_with(refresh_token)
+    jwt_service.create_access_token.assert_called_once_with(str(user_session.user.id))
+    jwt_service.create_refresh_token.assert_called_once_with(str(user_session.user.id))
+    token_service.rotate_refresh_token.assert_called_once_with(user_session, "new_refresh_token")
+    db_session.commit.assert_awaited_once()
+
+
 
 
 def test_refresh_session_revoked():
