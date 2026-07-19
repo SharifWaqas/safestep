@@ -79,6 +79,7 @@ async def test_login_user_not_found(user_repository, user, auth_service, passwor
 async def test_refresh_success(db_session, auth_service, jwt_service, token_service, user_session):
 
     # Arrange
+
     jwt_service.access_token_expires_in = 1
     refresh_token = "dummy_refresh_token"
     jwt_service.verify_token = MagicMock(return_value = {"type": "refresh"})
@@ -91,10 +92,12 @@ async def test_refresh_success(db_session, auth_service, jwt_service, token_serv
     print(type(jwt_service.access_token_expires_in))
     
     # Act
+
     result = await auth_service.refresh(refresh_token)
     print(result)
     print(result.expires_in)
     print(auth_service._jwt_service.access_token_expires_in)
+
     # Assert
 
     assert result.access_token == "new_access_token"
