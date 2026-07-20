@@ -87,17 +87,10 @@ async def test_refresh_success(db_session, auth_service, jwt_service, token_serv
     jwt_service.create_access_token = MagicMock(return_value = "new_access_token")
     jwt_service.create_refresh_token = MagicMock(return_value = "new_refresh_token")
     token_service.rotate_refresh_token = MagicMock()    
-
-    print(jwt_service.access_token_expires_in)
-    print(type(jwt_service.access_token_expires_in))
     
     # Act
 
     result = await auth_service.refresh(refresh_token)
-    print(result)
-    print(result.expires_in)
-    print(auth_service._jwt_service.access_token_expires_in)
-
     # Assert
 
     assert result.access_token == "new_access_token"
@@ -114,6 +107,30 @@ async def test_refresh_success(db_session, auth_service, jwt_service, token_serv
 
 
 
+@pytest.mark.asyncio
+async def test_refresh_invalid_token_type(jwt_service, auth_service, token_service, db_session):
+
+    # Arrange
+
+    jwt_service.access_token_expires_in = 1
+    refresh_token = "dummy_refresh_token"
+    jwt_service.verify_token = MagicMock(return_value = {"type": "access"})
+
+
+    # Act and Assert
+    with pytest.raises(InvalidCredentialsError):
+        await auth_service.refresh(refresh_token)
+
+
+    # Assert
+
+    token_service.get_session_by_refresh_token.assert_not_called()
+    jwt_service.verify_token.assert_called_once_with(refresh_token)
+    jwt_service.create_access_token.assert_not_called()
+    jwt_service.create_refresh_token.assert_not_called()
+    token_service.rotate_refresh_token.assert_not_called()
+    db_session.commit.assert_not_awaited()
+    db_session.rollback.assert_awaited_once()
 
 def test_refresh_session_revoked():
     ...
