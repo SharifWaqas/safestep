@@ -132,6 +132,38 @@ async def test_refresh_invalid_token_type(jwt_service, auth_service, token_servi
     db_session.commit.assert_not_awaited()
     db_session.rollback.assert_awaited_once()
 
+
+
+@pytest.mark.asyncio
+async def test_refresh_session_not_found(jwt_service, token_service, auth_service, db_session):
+
+    # Arrange
+
+    jwt_service.access_token_expires_in = 1
+    refresh_token = "dummy_refresh_token"
+    jwt_service.verify_token = MagicMock(return_value = {"type": "refresh"})
+    token_service.get_session_by_refresh_token = AsyncMock(return_value = None)
+
+    # Act and Assert
+
+    with pytest.raises(InvalidCredentialsError):
+        await auth_service.refresh(refresh_token)
+
+    # Act
+    
+    token_service.get_session_by_refresh_token.assert_awaited_once_with(refresh_token)
+    jwt_service.verify_token.assert_called_once_with(refresh_token)
+    jwt_service.create_access_token.assert_not_called()
+    jwt_service.create_refresh_token.assert_not_called()
+    token_service.rotate_refresh_token.assert_not_called()
+    db_session.commit.assert_not_awaited()
+    db_session.rollback.assert_awaited_once()
+
+
+
+    
+
+
 def test_refresh_session_revoked():
     ...
 
