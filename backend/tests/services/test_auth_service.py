@@ -3,6 +3,10 @@ import datetime
 
 from backend.app.services.exceptions import InvalidCredentialsError
 from unittest.mock import AsyncMock, MagicMock
+from backend.app.schemas.auth import LogoutResponse
+
+
+# LOGIN
 
 @pytest.mark.asyncio
 async def test_login_success(auth_service, user_repository, user, password_service, jwt_service, token_service, user_session, db_session):
@@ -74,7 +78,8 @@ async def test_login_user_not_found(user_repository, user, auth_service, passwor
 
  
 
-    
+# REFRESH
+
 
 @pytest.mark.asyncio
 async def test_refresh_success(db_session, auth_service, jwt_service, token_service, user_session):
@@ -245,7 +250,34 @@ async def test_refresh_user_not_found(jwt_service, token_service, auth_service, 
 
 
 
+# LOGOUT
 
 
-def test_logout_success():
-    ...
+@pytest.mark.asyncio
+async def test_logout_success(auth_service,jwt_service,token_service,db_session,user_session,):
+    # Arrange
+    
+    refresh_token = "refresh-token"
+    jwt_service.verify_token = MagicMock(return_value={"sub": str(user_session.user_id),"type": "refresh"})
+    token_service.get_session_by_refresh_token = AsyncMock(return_value=user_session)
+    token_service.revoke_session = MagicMock()
+    db_session.commit = AsyncMock()
+    db_session.rollback = AsyncMock()
+
+
+    # Act
+
+    response = await auth_service.logout(refresh_token)
+
+
+    # Assert
+
+    jwt_service.verify_token.assert_called_once_with(refresh_token)
+    token_service.get_session_by_refresh_token.assert_awaited_once_with(refresh_token)
+    token_service.revoke_session.assert_called_once_with(user_session)
+
+    db_session.commit.assert_awaited_once()
+    db_session.rollback.assert_not_awaited()
+
+    assert isinstance(response, LogoutResponse)
+    assert response.message == "You have been successfully logged out"
