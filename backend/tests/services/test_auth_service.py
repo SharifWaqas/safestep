@@ -1,5 +1,5 @@
 import pytest
-from datetime import datetime
+import datetime
 
 from backend.app.services.exceptions import InvalidCredentialsError
 from unittest.mock import AsyncMock, MagicMock
@@ -173,7 +173,7 @@ async def test_refresh_session_revoked(jwt_service, token_service, auth_service,
     refresh_token = "dummy_refresh_token"
     jwt_service.verify_token = MagicMock(return_value = {"type": "refresh"})
     token_service.get_session_by_refresh_token = AsyncMock(return_value = user_session)
-    user_session.revoked_at = datetime.now()
+    user_session.revoked_at = datetime.datetime.now()
 
     # Act
 
@@ -189,7 +189,31 @@ async def test_refresh_session_revoked(jwt_service, token_service, auth_service,
     db_session.commit.assert_not_awaited()
     db_session.rollback.assert_awaited_once()
 
+
+@pytest.mark.asyncio
+async def test_refresh_session_expired(jwt_service, token_service, auth_service, user_session, db_session):
     
+    # Arrange
+
+    jwt_service.access_token_expires_in = 1
+    refresh_token = "dummy_refresh_token"
+    jwt_service.verify_token = MagicMock(return_value = {"type": "refresh"})
+    token_service.get_session_by_refresh_token = AsyncMock(return_value = user_session)
+    user_session.expires_at = datetime.datetime.now(datetime.UTC) - datetime.timedelta(minutes=30)
+
+    # Act
+
+    with pytest.raises(InvalidCredentialsError):
+        await auth_service.refresh(refresh_token)
+    
+    # Assert
+    token_service.get_session_by_refresh_token.assert_awaited_once_with(refresh_token)
+    jwt_service.verify_token.assert_called_once_with(refresh_token)
+    jwt_service.create_access_token.assert_not_called()
+    jwt_service.create_refresh_token.assert_not_called()
+    token_service.rotate_refresh_token.assert_not_called()
+    db_session.commit.assert_not_awaited()
+    db_session.rollback.assert_awaited_once()
 
 
 def test_logout_success():
