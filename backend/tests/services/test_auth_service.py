@@ -331,6 +331,3 @@ async def test_logout_session_not_found(jwt_service, token_service, user_session
     db_session.commit.assert_not_awaited()
     db_session.rollback.assert_awaited_once()
 
-
-
-
