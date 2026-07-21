@@ -12,7 +12,6 @@ class User(Base, SoftDeleteMixin ):
 
     email: Mapped[str] = mapped_column(unique=True, nullable=False, type_=String(255))
     password_hash: Mapped[str] = mapped_column(nullable=False, type_= Text)
-    first_name: Mapped[str] = mapped_column(nullable=False, type_= String(50))
-    last_name: Mapped[str | None] = mapped_column(nullable=True, type_=String(50))
+    Full_name: Mapped[str] = mapped_column(nullable=False, type_= String(50))
     is_verified: Mapped[bool] = mapped_column(default=False,nullable=False, type_= Boolean)
     is_active: Mapped[bool] = mapped_column(default=True,nullable=False,  type_= Boolean)

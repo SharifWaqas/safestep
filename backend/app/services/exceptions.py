@@ -3,3 +3,6 @@ class TokenVerificationError(Exception):
 
 class InvalidCredentialsError(Exception):
     pass
+
+class EmailAlreadyExistsError(Exception):
+    pass

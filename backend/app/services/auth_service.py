@@ -1,10 +1,11 @@
-from backend.app.services.exceptions import InvalidCredentialsError
+from backend.app.services.exceptions import InvalidCredentialsError, EmailAlreadyExistsError
 from backend.app.services.jwt_service import JWTService
 from backend.app.services.password_service import PasswordService
 from backend.app.services.token_service import TokenService
 from backend.app.repositories.user_repository import UserRepository
 from sqlalchemy.ext.asyncio import AsyncSession
-from backend.app.schemas.auth import LoginResponse, RefreshResponse, LogoutResponse
+from backend.app.schemas.auth import LoginResponse, RefreshResponse, LogoutResponse, RegisterRequest, RegisterResponse
+from backend.app.models.user import User
 
 import datetime
 
@@ -23,8 +24,33 @@ class AuthService:
         self._password_service = password_service
         self._jwt_service = jwt_service
         self._token_service = token_service
-    
 
+    async def _issue_tokens(self, user : User)-> tuple[str, str]:
+        access_token = self._jwt_service.create_access_token(str(user.id))
+        refresh_token = self._jwt_service.create_refresh_token(str(user.id))            
+        await self._token_service.create_session(user, refresh_token)
+        await self._session.commit()
+
+        return access_token, refresh_token 
+
+    async def register(self, request: RegisterRequest) -> RegisterResponse:
+        try:
+            email = request.email
+            user = await self._user_repository.find_by_email(email)
+            if user is not None:
+                raise EmailAlreadyExistsError()
+
+            password = request.password
+            hashed_password = self._password_service.hash_password(password)
+            new_user = User(email=email, password_hash=hashed_password,full_name=request.full_name, is_verified=False, is_active=True)
+            await self._user_repository.create(new_user)
+            access_token, refresh_token = await self._issue_tokens(new_user)
+            return RegisterResponse(access_token=access_token,refresh_token=refresh_token,token_type="Bearer",expires_in=self._jwt_service.access_token_expires_in,)
+        except Exception:
+            await self._session.rollback()
+            raise
+
+            
     async def login(self, email: str, password: str) -> LoginResponse:
         try:
             user = await self._user_repository.find_by_email(email)
@@ -32,13 +58,10 @@ class AuthService:
                 raise InvalidCredentialsError
             if not self._password_service.verify_password(password, user.password_hash):
                 raise InvalidCredentialsError
-            user_access_token = self._jwt_service.create_access_token(str(user.id))
-            user_refresh_token = self._jwt_service.create_refresh_token(str(user.id))            
-            await self._token_service.create_session(user, user_refresh_token)
-            await self._session.commit()
+            access_token, refresh_token = await self._issue_tokens(user)
             return LoginResponse(
-                access_token=user_access_token,
-                refresh_token=user_refresh_token,
+                access_token=access_token,
+                refresh_token=refresh_token,
                 token_type="Bearer",
                 expires_in=self._jwt_service.access_token_expires_in,)       
         except Exception:

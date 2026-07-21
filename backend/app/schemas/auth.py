@@ -31,3 +31,16 @@ class LogoutRequest(BaseModel):
 
 class LogoutResponse(BaseModel):
     message: str
+
+
+class RegisterRequest(BaseModel):
+    full_name: str
+    email: EmailStr
+    password: str
+
+class RegisterResponse(BaseModel):
+    access_token: str
+    refresh_token: str
+    token_type: Literal["Bearer"] = "Bearer"
+    expires_in: int
+
