@@ -281,3 +281,30 @@ async def test_logout_success(auth_service,jwt_service,token_service,db_session,
 
     assert isinstance(response, LogoutResponse)
     assert response.message == "You have been successfully logged out"
+
+
+
+@pytest.mark.asyncio
+async def test_logout_invalid_token_type(user_session, jwt_service, auth_service, token_service, db_session):
+
+    # Arrange
+
+    token = "access-token"
+    jwt_service.verify_token = MagicMock(return_value={"sub": str(user_session.user_id),"type": "access"})
+
+    # Act
+    with pytest.raises(InvalidCredentialsError):
+        await auth_service.logout(token)
+
+
+    # Assert
+
+    jwt_service.verify_token.assert_called_once_with(token)
+    token_service.get_session_by_refresh_token.assert_not_called()
+    token_service.revoke_session.assert_not_called()
+    db_session.commit.assert_not_awaited()
+    db_session.rollback.assert_awaited_once()
+
+
+
+

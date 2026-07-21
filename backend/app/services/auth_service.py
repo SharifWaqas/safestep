@@ -101,5 +101,3 @@ class AuthService:
         except Exception:
             await self._session.rollback()
             raise
-
-        
