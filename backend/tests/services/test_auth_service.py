@@ -307,4 +307,30 @@ async def test_logout_invalid_token_type(user_session, jwt_service, auth_service
 
 
 
+@pytest.mark.asyncio
+async def test_logout_session_not_found(jwt_service, token_service, user_session, auth_service, db_session):
+
+    # Arrange
+
+    refresh_token = "refresh-token"
+    jwt_service.verify_token = MagicMock(return_value={"sub": str(user_session.user_id),"type": "refresh"})
+    token_service.get_session_by_refresh_token = AsyncMock(return_value=None)
+
+
+    # Act
+
+    with pytest.raises(InvalidCredentialsError):
+        await auth_service.logout(refresh_token)
+
+
+    # Assert
+
+    jwt_service.verify_token.assert_called_once_with(refresh_token)
+    token_service.get_session_by_refresh_token.assert_awaited_once_with(refresh_token)
+    token_service.revoke_session.assert_not_called()
+    db_session.commit.assert_not_awaited()
+    db_session.rollback.assert_awaited_once()
+
+
+
 
