@@ -29,7 +29,6 @@ class AuthService:
         access_token = self._jwt_service.create_access_token(str(user.id))
         refresh_token = self._jwt_service.create_refresh_token(str(user.id))            
         await self._token_service.create_session(user, refresh_token)
-        await self._session.commit()
 
         return access_token, refresh_token 
 
@@ -44,7 +43,9 @@ class AuthService:
             hashed_password = self._password_service.hash_password(password)
             new_user = User(email=email, password_hash=hashed_password,full_name=request.full_name, is_verified=False, is_active=True)
             await self._user_repository.create(new_user)
+            await self._session.flush()
             access_token, refresh_token = await self._issue_tokens(new_user)
+            await self._session.commit()
             return RegisterResponse(access_token=access_token,refresh_token=refresh_token,token_type="Bearer",expires_in=self._jwt_service.access_token_expires_in,)
         except Exception:
             await self._session.rollback()

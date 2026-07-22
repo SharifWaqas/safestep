@@ -18,9 +18,15 @@ class Analysis(Base, SoftDeleteMixin):
 
     upload_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("uploads.id"),nullable=False)
 
-    status: Mapped[AnalysisStatus] = mapped_column(
-        SQLEnum(AnalysisStatus,name="analysis_status"),nullable=False,default=AnalysisStatus.PENDING,server_default=AnalysisStatus.PENDING.value)
-
+    status: Mapped[AnalysisStatus] = mapped_column(SQLEnum(
+            AnalysisStatus,
+            name="analysis_status",
+            values_callable=lambda enum: [member.value for member in enum],
+        ),
+        nullable=False,
+        default=AnalysisStatus.PENDING,
+        server_default=AnalysisStatus.PENDING.value,
+    )
     started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True),nullable=True)
 
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True),nullable=True)

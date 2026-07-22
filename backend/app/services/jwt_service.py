@@ -52,4 +52,4 @@ class JWTService:
 
     @property
     def access_token_expires_in(self) -> int:
-        return self._settings.access_token_expire_minutes * 60
+        return self._access_token_expires_minutes * 60
