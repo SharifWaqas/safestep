@@ -51,24 +51,30 @@ class AuthService:
             await self._session.rollback()
             raise
 
-            
     async def login(self, email: str, password: str) -> LoginResponse:
         try:
             user = await self._user_repository.find_by_email(email)
+
             if user is None:
-                raise InvalidCredentialsError
+                raise InvalidCredentialsError()
+
             if not self._password_service.verify_password(password, user.password_hash):
-                raise InvalidCredentialsError
+                raise InvalidCredentialsError()
+
             access_token, refresh_token = await self._issue_tokens(user)
+
+            await self._session.commit()
+
             return LoginResponse(
                 access_token=access_token,
                 refresh_token=refresh_token,
                 token_type="Bearer",
-                expires_in=self._jwt_service.access_token_expires_in,)       
+                expires_in=self._jwt_service.access_token_expires_in,
+            )
+
         except Exception:
             await self._session.rollback()
-            raise 
-    
+            raise
 
     async def refresh(self, refresh_token : str) -> RefreshResponse:
         try:

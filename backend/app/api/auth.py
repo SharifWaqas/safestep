@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends
 
 from backend.app.api.dependencies import get_auth_service
 from backend.app.services.auth_service import AuthService
-from backend.app.schemas.auth import LoginRequest, LoginResponse, RegisterResponse, RegisterRequest
+from backend.app.schemas.auth import LoginRequest, LoginResponse, RegisterResponse, RegisterRequest, RefreshResponse, RefreshRequest
 
 
 
@@ -19,3 +19,8 @@ async def login(request: LoginRequest, auth_service: AuthService = Depends(get_a
 @router.post("/register", response_model=RegisterResponse)
 async def register(request: RegisterRequest, auth_service: AuthService = Depends(get_auth_service)) -> RegisterResponse:
     return await auth_service.register(request)
+
+"Refresh"
+@router.post("/refresh", response_model=RefreshResponse)
+async def refresh(request: RefreshRequest, auth_service: AuthService = Depends(get_auth_service)) -> RefreshResponse:
+    return await auth_service.refresh(request.refresh_token)
