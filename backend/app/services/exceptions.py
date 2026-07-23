@@ -6,3 +6,12 @@ class InvalidCredentialsError(Exception):
 
 class EmailAlreadyExistsError(Exception):
     pass
+
+class SessionNotFoundError(Exception):
+    pass
+
+class SessionRevokedError(Exception):
+    pass
+
+class SessionExpiredError(Exception):
+    pass

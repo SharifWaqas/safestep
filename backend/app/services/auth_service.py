@@ -1,4 +1,4 @@
-from backend.app.services.exceptions import InvalidCredentialsError, EmailAlreadyExistsError
+from backend.app.services.exceptions import InvalidCredentialsError, EmailAlreadyExistsError, SessionNotFoundError, SessionRevokedError, SessionExpiredError
 from backend.app.services.jwt_service import JWTService
 from backend.app.services.password_service import PasswordService
 from backend.app.services.token_service import TokenService
@@ -80,22 +80,22 @@ class AuthService:
         try:
             claims = self._jwt_service.verify_token(refresh_token)    
             if claims["type"] != "refresh":
-                raise InvalidCredentialsError
+                raise InvalidCredentialsError()
             session = await self._token_service.get_session_by_refresh_token(refresh_token)
 
             if session is None:
-                raise InvalidCredentialsError
+                raise SessionNotFoundError()
 
             if session.revoked_at is not None:
-                raise InvalidCredentialsError
+                raise SessionRevokedError()
 
             if session.expires_at < datetime.datetime.now(datetime.UTC):
-                raise InvalidCredentialsError
+                raise SessionExpiredError()
             
             user = session.user
 
             if user is None:
-                raise InvalidCredentialsError
+                raise InvalidCredentialsError()
             
             new_access_token = self._jwt_service.create_access_token(str(user.id))
             new_refresh_token = self._jwt_service.create_refresh_token(str(user.id))
@@ -116,14 +116,20 @@ class AuthService:
             claims = self._jwt_service.verify_token(refresh_token)
 
             if claims["type"] != "refresh":
-                raise InvalidCredentialsError
+                raise InvalidCredentialsError()
             
             session = await self._token_service.get_session_by_refresh_token(refresh_token)
             
             if session is None:
-                raise InvalidCredentialsError
+                raise SessionNotFoundError()
+            
+            if session.revoked_at is not None:
+                raise SessionRevokedError()
+
+            if session.expires_at < datetime.datetime.now(datetime.UTC):
+                raise SessionExpiredError()
     
-            self._token_service.revoke_session(session)
+            await self._token_service.revoke_session(session)
             await self._session.commit()
             return LogoutResponse(
                 message="You have been successfully logged out"
