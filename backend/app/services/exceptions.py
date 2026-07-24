@@ -5,7 +5,10 @@ class InvalidCredentialsError(Exception):
     pass
 
 class EmailAlreadyExistsError(Exception):
-    pass
+    def __init__(self):
+        super().__init__(
+            "An account with this email already exists."
+        )
 
 class SessionNotFoundError(Exception):
     pass
@@ -15,3 +18,4 @@ class SessionRevokedError(Exception):
 
 class SessionExpiredError(Exception):
     pass
+
