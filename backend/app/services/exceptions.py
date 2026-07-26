@@ -19,3 +19,9 @@ class SessionRevokedError(Exception):
 class SessionExpiredError(Exception):
     pass
 
+
+class InvalidFileTypeError(Exception):
+    pass
+
+class FileTooLargeError(Exception):
+    pass

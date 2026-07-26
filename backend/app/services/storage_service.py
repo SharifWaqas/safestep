@@ -23,8 +23,11 @@ class StorageService:
 
         return StorageResult(storage_path=str(storage_path),file_name=stored_file_name,file_size= len(file_data),content_type= file.content_type)
 
-    def delete_file(self):
-        ...
+    async def delete_file(self, storage_path: str) -> None:
+        path = Path(storage_path)
+
+        if path.exists():
+            path.unlink()
 
     def get_file(self):
         ...

@@ -15,3 +15,4 @@ class Upload(Base, SoftDeleteMixin):
     storage_path: Mapped[str] = mapped_column(nullable=False, type_=Text)
     file_name: Mapped[str] = mapped_column(nullable=False, type_=Text)
     file_size: Mapped[int] = mapped_column(nullable=False, type_=Integer)
+    content_type: Mapped[str] = mapped_column(nullable=False, type_=Text)
