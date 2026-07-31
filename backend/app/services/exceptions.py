@@ -25,3 +25,6 @@ class InvalidFileTypeError(Exception):
 
 class FileTooLargeError(Exception):
     pass
+
+class InvalidTokenTypeError(Exception):
+    pass
