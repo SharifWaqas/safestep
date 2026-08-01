@@ -28,3 +28,6 @@ class FileTooLargeError(Exception):
 
 class InvalidTokenTypeError(Exception):
     pass
+
+class UploadNotFoundError(Exception):
+    pass

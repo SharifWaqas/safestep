@@ -1,12 +1,13 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import UploadFile
+from uuid import UUID
 
 from backend.app.core.config import settings
 
-from backend.app.services.exceptions import InvalidFileTypeError, FileTooLargeError
+from backend.app.services.exceptions import InvalidFileTypeError, FileTooLargeError, UploadNotFoundError
 from backend.app.services.storage_service import StorageService
 
-from backend.app.schemas.upload import UploadResponse
+from backend.app.schemas.upload import UploadResponse, UploadDetailResponse
 
 from backend.app.models.user import User
 from backend.app.models.upload import Upload
@@ -70,3 +71,17 @@ class UploadService:
 
         if size > settings.MAX_UPLOAD_SIZE :
             raise FileTooLargeError        
+
+    async def get_upload(self, user: User, upload_id: UUID) -> UploadDetailResponse:
+        upload = await self._upload_repository.get_by_id_and_user(upload_id, user.id)
+
+        if upload is None:
+            raise UploadNotFoundError()
+
+        return UploadDetailResponse(
+            file_name = upload.file_name,
+            file_size = upload.file_size,
+            content_type = upload.content_type,
+            upload_id = upload.id,
+            created_at = upload.created_at 
+        )
