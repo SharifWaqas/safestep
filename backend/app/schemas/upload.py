@@ -19,6 +19,9 @@ class UploadDetailResponse(BaseModel):
     upload_id: UUID
     created_at: datetime
 
+class DeleteUploadResponse(BaseModel):
+    upload_id: UUID
+    message: str
 
 
 

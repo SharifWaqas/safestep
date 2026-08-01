@@ -7,7 +7,7 @@ from backend.app.core.config import settings
 from backend.app.services.exceptions import InvalidFileTypeError, FileTooLargeError, UploadNotFoundError
 from backend.app.services.storage_service import StorageService
 
-from backend.app.schemas.upload import UploadResponse, UploadDetailResponse
+from backend.app.schemas.upload import UploadResponse, UploadDetailResponse, DeleteUploadResponse
 
 from backend.app.models.user import User
 from backend.app.models.upload import Upload
@@ -85,3 +85,20 @@ class UploadService:
             upload_id = upload.id,
             created_at = upload.created_at 
         )
+
+    async def delete_upload(self, user: User, upload_id: UUID)-> DeleteUploadResponse:
+        upload = await self._upload_repository.get_by_id_and_user(upload_id, user.id)
+
+        if upload is None:
+            raise UploadNotFoundError()
+
+        await self._upload_repository.delete(upload)
+        await self._session.commit()
+
+        await self._storage_service.delete_file(upload.storage_path)
+        return DeleteUploadResponse(
+            upload_id= upload.id,
+            message= "Upload deleted successfully."
+        )
+
+

@@ -2,7 +2,7 @@ from typing import TypeVar, Generic, Type
 from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, Delete
 
 
 T = TypeVar("T")
@@ -25,3 +25,6 @@ class BaseRepository(Generic[T]):
         self._db_session.add(entity)
         return entity
 
+
+    async def delete(self, entity: T) -> None:
+        await self._db_session.delete(entity)
