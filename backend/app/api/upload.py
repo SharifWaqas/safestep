@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, UploadFile, File
 from uuid import UUID
 
 from backend.app.schemas.upload import UploadResponse
-from backend.app.services.upload_service import UploadService, UploadDetailResponse, DeleteUploadResponse
+from backend.app.services.upload_service import UploadService, UploadDetailResponse, DeleteUploadResponse, UploadSummaryResponse
 from backend.app.api.dependencies import get_upload_service, get_current_user
 from backend.app.models.user import User
 
@@ -20,3 +20,7 @@ async def get_upload(upload_id: UUID ,user: User = Depends(get_current_user), up
 @router.delete("/{upload_id}")
 async def delete_upload(upload_id: UUID ,user: User = Depends(get_current_user), upload_service: UploadService = Depends(get_upload_service))-> DeleteUploadResponse:
     return await upload_service.delete_upload(user, upload_id)
+
+@router.get("")
+async def get_uploads(user: User = Depends(get_current_user),upload_service: UploadService = Depends(get_upload_service))->list[UploadSummaryResponse]:
+    return await upload_service.list_uploads(user)

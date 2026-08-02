@@ -7,7 +7,7 @@ from backend.app.core.config import settings
 from backend.app.services.exceptions import InvalidFileTypeError, FileTooLargeError, UploadNotFoundError
 from backend.app.services.storage_service import StorageService
 
-from backend.app.schemas.upload import UploadResponse, UploadDetailResponse, DeleteUploadResponse
+from backend.app.schemas.upload import UploadResponse, UploadDetailResponse, DeleteUploadResponse, UploadSummaryResponse
 
 from backend.app.models.user import User
 from backend.app.models.upload import Upload
@@ -102,3 +102,9 @@ class UploadService:
         )
 
 
+    async def list_uploads(self, user: User) -> list[UploadSummaryResponse]:
+        upload_responses = []
+        uploads = await self._upload_repository.list_uploads(user.id)
+        for upload in uploads:
+            upload_responses.append(UploadSummaryResponse(upload_id=upload.id, file_name=upload.file_name, file_size=upload.file_size, content_type=upload.content_type, created_at=upload.created_at))
+        return upload_responses

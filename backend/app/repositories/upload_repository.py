@@ -17,5 +17,8 @@ class UploadRepository(BaseRepository[Upload]):
         result = await self._db_session.execute(query)
         return result.scalar_one_or_none()
 
+    async def list_uploads(self, user_id: UUID)-> list[Upload]:
+        query = select(self._model).where(self._model.user_id == user_id).order_by(self._model.created_at.desc())
+        result = await self._db_session.execute(query)
+        return list(result.scalars()) 
         
-
