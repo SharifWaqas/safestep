@@ -14,11 +14,13 @@ from backend.app.repositories.session_repository import SessionRepository
 from backend.app.repositories.user_repository import UserRepository
 from backend.app.repositories.upload_repository import UploadRepository
 from backend.app.repositories.user_repository import UserRepository
+from backend.app.repositories.analysis_repository import AnalysisRepository
 
 from backend.app.models.user import User
 
 from backend.app.services.upload_service import UploadService
 from backend.app.services.storage_service import StorageService
+from backend.app.services.analysis_service import AnalysisService
 
 from backend.app.core.config import settings
 from pathlib import Path
@@ -69,5 +71,9 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db_session: Asyn
     if user is None:
         raise InvalidCredentialsError()
     return user
-    
 
+async def get_analysis_service(session: AsyncSession = Depends(get_db),) -> AnalysisService:
+    upload_repository = UploadRepository(session)
+    analysis_repository = AnalysisRepository(session)
+
+    return AnalysisService(session,upload_repository,analysis_repository,)

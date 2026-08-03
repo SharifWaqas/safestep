@@ -1,6 +1,6 @@
 from fastapi.responses import JSONResponse
 from fastapi import FastAPI, Request
-from backend.app.services.exceptions import InvalidCredentialsError, TokenVerificationError, SessionNotFoundError, SessionRevokedError, SessionExpiredError, EmailAlreadyExistsError, UploadNotFoundError
+from backend.app.services.exceptions import InvalidCredentialsError, TokenVerificationError, SessionNotFoundError, SessionRevokedError, SessionExpiredError, EmailAlreadyExistsError, UploadNotFoundError, AnalysisAlreadyExistsError
 
 def handle_authentication_error(_request: Request , _exception: Exception)-> JSONResponse:
     return JSONResponse(status_code=401, content={"detail": "Authentication failed."})
@@ -18,7 +18,7 @@ def handle_not_found_error(_request: Request,_exception: Exception,) -> JSONResp
 
 def register_exception_handlers(app: FastAPI) -> None:
     authentication_exceptions = (InvalidCredentialsError, TokenVerificationError, SessionNotFoundError, SessionRevokedError, SessionExpiredError)
-    conflict_exceptions = (EmailAlreadyExistsError,)
+    conflict_exceptions = (EmailAlreadyExistsError,AnalysisAlreadyExistsError)
     not_found_exceptions = (UploadNotFoundError,)
 
     for exception_type in authentication_exceptions:
