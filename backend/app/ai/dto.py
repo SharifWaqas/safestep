@@ -13,9 +13,6 @@ class RiskLevel(str, Enum):
 class AnalysisResultDTO(BaseModel):
     """
     Represents the final structured analysis produced by the AI subsystem.
-
-    This DTO is provider-agnostic and contains only the business result
-    of the AI analysis.
     """
 
     risk_level: RiskLevel
