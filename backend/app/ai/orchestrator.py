@@ -1,8 +1,6 @@
-from backend.app.ai.dto import AnalysisResultDTO
 from backend.app.ai.openai_client import OpenAIClient
-from backend.app.ai.parser import AIResponseParser
+from backend.app.ai.prompts import PromptBuilder
 from backend.app.ai.storage import StorageProvider
-from backend.app.models.analysis import Analysis
 from backend.app.models.upload import Upload
 
 
@@ -11,23 +9,23 @@ class AIOrchestrator:
         self,
         storage_provider: StorageProvider,
         openai_client: OpenAIClient,
-        parser: AIResponseParser,
+        prompt_builder: PromptBuilder,
     ):
         self._storage_provider = storage_provider
         self._openai_client = openai_client
-        self._parser = parser
+        self._prompt_builder = prompt_builder
 
-    async def analyze(
-        self,
-        upload: Upload,
-        analysis: Analysis,
-    ) -> AnalysisResultDTO:
-        file_path = await self._storage_provider.get_file_path(upload)
-
-        raw_response = await self._openai_client.analyze_image(
-            file_path=file_path,
+    async def analyze(self, upload: Upload):
+        image_bytes = await self._storage_provider.get_image_data(
+            upload.storage_path
         )
 
-        result = self._parser.parse(raw_response)
+        prompt = self._prompt_builder.build()
+
+        result = await self._openai_client.analyze_image(
+            image_bytes=image_bytes,
+            mime_type=upload.mime_type,
+            prompt=prompt,
+        )
 
         return result
