@@ -9,8 +9,8 @@ class ScamLevel(str, Enum):
     MEDIUM = "MEDIUM"
     HIGH = "HIGH"
 
-
 class AIResponseSchema(BaseModel):
+    summary: str
     scam_level: ScamLevel
     description: str
     solution: str | None = None
@@ -18,4 +18,4 @@ class AIResponseSchema(BaseModel):
 
 
 
-ai_response = AIResponseSchema(scam_level="SAFE", description="None", solution="None", reassurance="None")
+ai_response = AIResponseSchema(summary="None",scam_level="SAFE",description="None",solution="None",reassurance="None")

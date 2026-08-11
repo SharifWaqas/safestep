@@ -17,7 +17,7 @@ class AIResult(Base):
     guidance: Mapped[str] = mapped_column(nullable = False, type_=Text)
     reassurance: Mapped[str] = mapped_column(nullable=False, type_=Text)
     risk_level: Mapped[RiskLevel] = mapped_column(SQLEnum(RiskLevel,name="risk_level"),nullable=False)
-    confidence: Mapped[Decimal] = mapped_column(nullable=False, type_=DECIMAL(4,3))
+    confidence: Mapped[Decimal | None] = mapped_column(nullable=True,type_=DECIMAL(4,3))
     model_name: Mapped[str] = mapped_column(nullable=True, type_=String(64))
     prompt_tokens: Mapped[int] = mapped_column(nullable=True, type_= INTEGER)
     completion_tokens: Mapped[int] = mapped_column(nullable=True, type_=INTEGER)

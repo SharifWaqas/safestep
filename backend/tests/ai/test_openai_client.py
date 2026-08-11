@@ -20,12 +20,12 @@ async def test_analyze_image():
     )
 
     expected_result = AIResponseSchema(
+        summary="This message appears to be a scam.",
         scam_level=ScamLevel.HIGH,
-        description="This is a test analysis.",
+        description="Test analysis.",
         solution="Do not interact with the message.",
-        reassurance="You are safe if you do not provide any information.",
+        reassurance="You are safe.",
     )
-
     client._client.responses.parse = AsyncMock(
         return_value=type(
             "MockResponse",

@@ -21,6 +21,7 @@ async def test_analyze():
     prompt_builder.build.return_value = "Test prompt"
 
     expected_result = AIResponseSchema(
+        summary="This message appears to be a scam.",
         scam_level=ScamLevel.HIGH,
         description="Test analysis.",
         solution="Do not interact with the message.",
