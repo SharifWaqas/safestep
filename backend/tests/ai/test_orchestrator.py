@@ -4,8 +4,7 @@ import pytest
 
 from backend.app.ai.orchestrator import AIOrchestrator
 from backend.app.ai.schemas import AIResponseSchema
-from backend.app.ai.schemas import ScamLevel
-
+from backend.app.enums.risk_level import RiskLevel
 
 @pytest.mark.asyncio
 async def test_analyze():
@@ -22,7 +21,7 @@ async def test_analyze():
 
     expected_result = AIResponseSchema(
         summary="This message appears to be a scam.",
-        scam_level=ScamLevel.HIGH,
+        risk_level=RiskLevel.HIGH,
         description="Test analysis.",
         solution="Do not interact with the message.",
         reassurance="You are safe.",

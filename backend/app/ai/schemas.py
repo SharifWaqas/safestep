@@ -1,21 +1,16 @@
 from enum import Enum
 
 from pydantic import BaseModel
+from backend.app.enums.risk_level import RiskLevel
 
-
-class ScamLevel(str, Enum):
-    SAFE = "SAFE"
-    LOW = "LOW"
-    MEDIUM = "MEDIUM"
-    HIGH = "HIGH"
 
 class AIResponseSchema(BaseModel):
     summary: str
-    scam_level: ScamLevel
+    risk_level: RiskLevel
     description: str
-    solution: str | None = None
-    reassurance: str | None = None
+    solution: str
+    reassurance: str
 
 
 
-ai_response = AIResponseSchema(summary="None",scam_level="SAFE",description="None",solution="None",reassurance="None")
+ai_response = AIResponseSchema(summary="None",risk_level=RiskLevel.SAFE, description="None",solution="None",reassurance="None")

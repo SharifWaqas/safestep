@@ -3,6 +3,7 @@ from uuid import UUID
 
 from backend.app.repositories.upload_repository import UploadRepository
 from backend.app.repositories.analysis_repository import AnalysisRepository
+from backend.app.repositories.ai_result_repository import AIResultRepository
 
 from backend.app.models.user import User
 from backend.app.models.analysis import Analysis
@@ -12,6 +13,8 @@ from backend.app.services.exceptions import UploadNotFoundError, AnalysisAlready
 
 from backend.app.schemas.analysis import CreateAnalysisResponse
 
+from backend.app.ai.orchestrator import AIOrchestrator
+
 class AnalysisService:
 
     def __init__(
@@ -19,10 +22,14 @@ class AnalysisService:
             session: AsyncSession,
             upload_repository: UploadRepository,
             analysis_repository: AnalysisRepository,
+            ai_orchestrator: AIOrchestrator,
+            ai_result_repository: AIResultRepository
     ) -> None:
         self._session = session
         self._upload_repository = upload_repository
         self._analysis_repository = analysis_repository
+        self._ai_orchestrator = ai_orchestrator
+        self._ai_result_repository = ai_result_repository
 
 
     async def create_analysis(self, user: User, upload_id: UUID,) -> CreateAnalysisResponse :
@@ -40,6 +47,9 @@ class AnalysisService:
             user_analysis = Analysis(upload_id=upload.id)
             await self._analysis_repository.save(user_analysis)
             await self._session.commit()
+
+            result = await self._ai_orchestrator.analyze(upload)
+
             return (CreateAnalysisResponse(
                 analysis_id=user_analysis.id,
                 upload_id=user_analysis.upload_id,
