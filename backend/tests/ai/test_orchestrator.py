@@ -6,6 +6,11 @@ from backend.app.ai.orchestrator import AIOrchestrator
 from backend.app.ai.schemas import AIResponseSchema
 from backend.app.enums.risk_level import RiskLevel
 
+from decimal import Decimal
+from backend.app.enums.risk_factor import RiskFactor
+from backend.app.ai.schemas import RiskFactorResult
+
+
 @pytest.mark.asyncio
 async def test_analyze():
     storage_provider = Mock()
@@ -25,6 +30,7 @@ async def test_analyze():
         description="Test analysis.",
         solution="Do not interact with the message.",
         reassurance="You are safe.",
+        risk_factors=[RiskFactorResult(risk_factor=RiskFactor.UNREALISTIC_PRICE,value=Decimal("0.85"),description="The item is being offered at an unusually low price.")]
     )
 
     openai_client.analyze_image.return_value = expected_result

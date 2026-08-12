@@ -13,3 +13,4 @@ class RiskFactor(StrEnum):
     LOGIN_FORM = auto()
     PAYMENT_REQUEST = auto()
     REWARD_LANGUAGE = auto()
+    UNREALISTIC_PRICE = auto()

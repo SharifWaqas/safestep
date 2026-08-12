@@ -21,4 +21,9 @@ class Settings(BaseSettings):
     MAX_UPLOAD_SIZE: int
 
 
+
+    NVIDIA_API_KEY: str
+    NVIDIA_MODEL: str
+
+
 settings = Settings()

@@ -31,8 +31,7 @@ def user():
     return User(
         email="test@example.com",
         password_hash="hashed_password",
-        first_name="John",
-        last_name="Doe",
+        full_name = "John Doe",
         is_verified=True,
         is_active=True,
     )

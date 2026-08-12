@@ -1,7 +1,7 @@
 """add safe risk level
 
 Revision ID: c4b6c8e1d4ca
-Revises: 
+Revises:
 Create Date: 2026-08-12 17:09:49.472365
 
 """
@@ -19,8 +19,7 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    op.execute("ALTER TYPE risk_level ADD VALUE 'SAFE' BEFORE 'LOW';")    
-
+    op.execute("ALTER TYPE risk_level ADD VALUE 'SAFE' BEFORE 'LOW';")
 
 def downgrade() -> None:
     """Downgrade schema."""

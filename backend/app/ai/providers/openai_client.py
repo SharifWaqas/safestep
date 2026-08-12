@@ -4,8 +4,9 @@ from openai import AsyncOpenAI
 
 from backend.app.ai.schemas import AIResponseSchema
 
+from backend.app.ai.providers.base import AIProvider
 
-class OpenAIClient:
+class OpenAIClient(AIProvider):
     def __init__(self, api_key: str, model: str):
         self._client = AsyncOpenAI(api_key=api_key)
         self._model = model

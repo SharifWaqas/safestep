@@ -1,4 +1,4 @@
-from backend.app.ai.openai_client import OpenAIClient
+from backend.app.ai.providers.openai_client import OpenAIClient
 from backend.app.ai.prompts import PromptBuilder
 from backend.app.ai.storage import StorageProvider
 from backend.app.models.upload import Upload
