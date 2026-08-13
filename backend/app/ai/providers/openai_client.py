@@ -2,11 +2,12 @@ import base64
 
 from openai import AsyncOpenAI
 
+from backend.app.ai.providers.base import AIProvider, AIProviderError
 from backend.app.ai.schemas import AIResponseSchema
 
-from backend.app.ai.providers.base import AIProvider
 
 class OpenAIClient(AIProvider):
+
     def __init__(self, api_key: str, model: str):
         self._client = AsyncOpenAI(api_key=api_key)
         self._model = model
@@ -17,28 +18,34 @@ class OpenAIClient(AIProvider):
         mime_type: str,
         prompt: str,
     ) -> AIResponseSchema:
-        base64_image = base64.b64encode(image_bytes).decode("utf-8")
 
+        base64_image = base64.b64encode(image_bytes).decode("utf-8")
         image_data_url = f"data:{mime_type};base64,{base64_image}"
 
-        response = await self._client.responses.parse(
-            model=self._model,
-            input=[
-                {
-                    "role": "user",
-                    "content": [
-                        {
-                            "type": "input_text",
-                            "text": prompt,
-                        },
-                        {
-                            "type": "input_image",
-                            "image_url": image_data_url,
-                        },
-                    ],
-                }
-            ],
-            text_format=AIResponseSchema,
-        )
+        try:
+            response = await self._client.responses.parse(
+                model=self._model,
+                input=[
+                    {
+                        "role": "user",
+                        "content": [
+                            {
+                                "type": "input_text",
+                                "text": prompt,
+                            },
+                            {
+                                "type": "input_image",
+                                "image_url": image_data_url,
+                            },
+                        ],
+                    }
+                ],
+                text_format=AIResponseSchema,
+            )
 
-        return response.output_parsed
+            return response.output_parsed
+
+        except Exception as exc:
+            raise AIProviderError(
+                "OpenAI failed to analyze the image."
+            ) from exc
