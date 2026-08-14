@@ -33,7 +33,7 @@ class AIResponseParser:
         normalized = content.replace("*", "").strip()
 
         match = re.search(
-            r"Risk Level\s*:\s*(SAFE|LOW|MEDIUM|HIGH|VERY\s+HIGH)",
+            r"Risk Level\s*:\s*(SAFE|LOW|MEDIUM|HIGH|VERY[\s_]+HIGH)",
             normalized,
             re.IGNORECASE,
         )
@@ -50,9 +50,9 @@ class AIResponseParser:
         normalized = content.replace("*", "")
 
         match = re.search(
-            r"Risk Level\s*:\s*(?:SAFE|LOW|MEDIUM|HIGH|VERY\s+HIGH)"
-            r"(.*?)(?=Content Analysis\s*:|Suspicious Characteristics\s*:|"
-            r"Safe Practical Guidance\s*:|Reassurance\s*:|$)",
+            r"Risk Level\s*:\s*(?:SAFE|LOW|MEDIUM|HIGH|VERY[\s_]+HIGH)"
+            r"(.*?)(?=Content Analysis\s*:|Suspicious Characteristics\s*:"
+            r"|Safe Practical Guidance\s*:|Reassurance\s*:|$)",
             normalized,
             re.IGNORECASE | re.DOTALL,
         )
@@ -134,7 +134,10 @@ class AIResponseParser:
         if solution:
             return solution
 
-        return "Do not interact with suspicious content. Verify the message through an official channel."
+        return (
+            "Do not interact with suspicious content. "
+            "Verify the message through an official channel."
+        )
 
     @staticmethod
     def _extract_reassurance(content: str) -> str:
@@ -147,7 +150,10 @@ class AIResponseParser:
         if reassurance:
             return reassurance
 
-        return "If you are unsure about a message, verify it through an official channel before taking action."
+        return (
+            "If you are unsure about a message, verify it through "
+            "an official channel before taking action."
+        )
 
     @staticmethod
     def _extract_risk_factors(
