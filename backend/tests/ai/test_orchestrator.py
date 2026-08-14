@@ -1,62 +1,132 @@
-from unittest.mock import AsyncMock, Mock
+from decimal import Decimal
+from unittest.mock import AsyncMock
 
 import pytest
 
 from backend.app.ai.orchestrator import AIOrchestrator
-from backend.app.ai.schemas import AIResponseSchema
+from backend.app.ai.providers.base import AIProviderError
+from backend.app.ai.schemas import AIResponseSchema, RiskFactorResult
+from backend.app.enums.risk_factor import RiskFactor
 from backend.app.enums.risk_level import RiskLevel
 
-from decimal import Decimal
-from backend.app.enums.risk_factor import RiskFactor
-from backend.app.ai.schemas import RiskFactorResult
 
-
-@pytest.mark.asyncio
-async def test_analyze():
-    storage_provider = Mock()
-    storage_provider.get_image_data = AsyncMock(
-        return_value=b"fake-image-bytes"
-    )
-
-    openai_client = Mock()
-    openai_client.analyze_image = AsyncMock()
-
-    prompt_builder = Mock()
-    prompt_builder.build.return_value = "Test prompt"
-
-    expected_result = AIResponseSchema(
+def create_response() -> AIResponseSchema:
+    return AIResponseSchema(
         summary="This message appears to be a scam.",
         risk_level=RiskLevel.HIGH,
         description="Test analysis.",
         solution="Do not interact with the message.",
         reassurance="You are safe.",
-        risk_factors=[RiskFactorResult(risk_factor=RiskFactor.UNREALISTIC_PRICE,value=Decimal("0.85"),description="The item is being offered at an unusually low price.")]
+        risk_factors=[
+            RiskFactorResult(
+                risk_factor=RiskFactor.UNREALISTIC_PRICE,
+                value=Decimal("0.85"),
+                description=(
+                    "The item is being offered at an unusually "
+                    "low price."
+                ),
+            )
+        ],
     )
 
-    openai_client.analyze_image.return_value = expected_result
+
+@pytest.mark.asyncio
+async def test_primary_provider_success():
+    primary_provider = AsyncMock()
+    fallback_provider = AsyncMock()
+
+    expected_result = create_response()
+
+    primary_provider.analyze_image.return_value = expected_result
 
     orchestrator = AIOrchestrator(
-        storage_provider=storage_provider,
-        openai_client=openai_client,
-        prompt_builder=prompt_builder,
+        primary_provider=primary_provider,
+        fallback_provider=fallback_provider,
     )
 
-    upload = Mock()
-    upload.storage_path = "test/path/image.png"
-    upload.mime_type = "image/png"
-
-    result = await orchestrator.analyze(upload)
-
-    assert result == expected_result
-
-    storage_provider.get_image_data.assert_awaited_once_with(
-        "test/path/image.png"
-    )
-
-    prompt_builder.build.assert_called_once_with()
-
-    openai_client.analyze_image.assert_awaited_once_with(
+    result = await orchestrator.analyze_image(
         image_bytes=b"fake-image-bytes",
         mime_type="image/png",
         prompt="Test prompt",
     )
+
+    assert result == expected_result
+
+    primary_provider.analyze_image.assert_awaited_once_with(
+        image_bytes=b"fake-image-bytes",
+        mime_type="image/png",
+        prompt="Test prompt",
+    )
+
+    fallback_provider.analyze_image.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_primary_provider_failure_uses_fallback():
+    primary_provider = AsyncMock()
+    fallback_provider = AsyncMock()
+
+    expected_result = create_response()
+
+    primary_provider.analyze_image.side_effect = AIProviderError(
+        "Primary provider failed"
+    )
+
+    fallback_provider.analyze_image.return_value = expected_result
+
+    orchestrator = AIOrchestrator(
+        primary_provider=primary_provider,
+        fallback_provider=fallback_provider,
+    )
+
+    result = await orchestrator.analyze_image(
+        image_bytes=b"fake-image-bytes",
+        mime_type="image/png",
+        prompt="Test prompt",
+    )
+
+    assert result == expected_result
+
+    primary_provider.analyze_image.assert_awaited_once_with(
+        image_bytes=b"fake-image-bytes",
+        mime_type="image/png",
+        prompt="Test prompt",
+    )
+
+    fallback_provider.analyze_image.assert_awaited_once_with(
+        image_bytes=b"fake-image-bytes",
+        mime_type="image/png",
+        prompt="Test prompt",
+    )
+
+
+@pytest.mark.asyncio
+async def test_fallback_failure_propagates_error():
+    primary_provider = AsyncMock()
+    fallback_provider = AsyncMock()
+
+    primary_provider.analyze_image.side_effect = AIProviderError(
+        "Primary provider failed"
+    )
+
+    fallback_error = AIProviderError(
+        "Fallback provider failed"
+    )
+
+    fallback_provider.analyze_image.side_effect = fallback_error
+
+    orchestrator = AIOrchestrator(
+        primary_provider=primary_provider,
+        fallback_provider=fallback_provider,
+    )
+
+    with pytest.raises(AIProviderError, match="Fallback provider failed"):
+        await orchestrator.analyze_image(
+            image_bytes=b"fake-image-bytes",
+            mime_type="image/png",
+            prompt="Test prompt",
+        )
+
+    primary_provider.analyze_image.assert_awaited_once()
+
+    fallback_provider.analyze_image.assert_awaited_once()

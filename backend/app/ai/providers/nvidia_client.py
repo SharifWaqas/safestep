@@ -49,11 +49,11 @@ class NVIDIAClient(AIProvider):
                 response_format={
                     "type": "json_schema",
                     "json_schema": {
-                    "name": "AIResponseSchema",
-                    "schema": AIResponseSchema.model_json_schema(),
+                        "name": "AIResponseSchema",
+                        "schema": AIResponseSchema.model_json_schema(),
                     },
-            },
-        )
+                },
+            )
 
             content = response.choices[0].message.content
 
@@ -63,5 +63,6 @@ class NVIDIAClient(AIProvider):
             raise AIProviderError(
                 "NVIDIA failed to analyze the image."
             ) from exc
-        finally:
-            await self._client.close()
+
+    async def close(self) -> None:
+        await self._client.close()

@@ -9,12 +9,20 @@ from backend.app.services.auth_service import AuthService
 from backend.app.services.password_service import PasswordService
 from backend.app.services.jwt_service import JWTService
 from backend.app.services.token_service import TokenService
+from backend.app.ai.prompts import PromptBuilder
+
 
 from backend.app.repositories.session_repository import SessionRepository
 from backend.app.repositories.user_repository import UserRepository
 from backend.app.repositories.upload_repository import UploadRepository
-from backend.app.repositories.user_repository import UserRepository
 from backend.app.repositories.analysis_repository import AnalysisRepository
+
+from backend.app.repositories.ai_result_repository import AIResultRepository
+from backend.app.repositories.risk_score_repository import RiskScoreRepository
+
+from backend.app.ai.orchestrator import AIOrchestrator
+from backend.app.ai.providers.nvidia_client import NVIDIAClient
+from backend.app.ai.providers.openai_client import OpenAIClient
 
 from backend.app.models.user import User
 
@@ -72,8 +80,43 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db_session: Asyn
         raise InvalidCredentialsError()
     return user
 
-async def get_analysis_service(session: AsyncSession = Depends(get_db),) -> AnalysisService:
+async def get_analysis_service(
+    session: AsyncSession = Depends(get_db),
+) -> AnalysisService:
+
     upload_repository = UploadRepository(session)
     analysis_repository = AnalysisRepository(session)
+    ai_result_repository = AIResultRepository(session)
+    risk_score_repository = RiskScoreRepository(session)
 
-    return AnalysisService(session,upload_repository,analysis_repository,)
+    storage_service = StorageService(
+        upload_directory=Path(settings.UPLOAD_DIRECTORY)
+    )
+
+    prompt_builder = PromptBuilder()
+
+    nvidia_client = NVIDIAClient(
+        api_key=settings.NVIDIA_API_KEY,
+        model=settings.NVIDIA_MODEL,
+    )
+
+    openai_client = OpenAIClient(
+        api_key=settings.OPENAI_API_KEY,
+        model=settings.OPENAI_MODEL,
+    )
+
+    ai_orchestrator = AIOrchestrator(
+        primary_provider=nvidia_client,
+        fallback_provider=openai_client,
+    )
+
+    return AnalysisService(
+        session=session,
+        upload_repository=upload_repository,
+        analysis_repository=analysis_repository,
+        storage_service=storage_service,
+        prompt_builder=prompt_builder,
+        ai_orchestrator=ai_orchestrator,
+        ai_result_repository=ai_result_repository,
+        risk_score_repository=risk_score_repository,
+    )
