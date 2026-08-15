@@ -1,7 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import Depends
-from fastapi.security import OAuth2PasswordBearer
-
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
 from backend.app.database.session import SessionFactory
 
@@ -22,7 +21,6 @@ from backend.app.repositories.risk_score_repository import RiskScoreRepository
 
 from backend.app.ai.orchestrator import AIOrchestrator
 from backend.app.ai.providers.nvidia_client import NVIDIAClient
-from backend.app.ai.providers.openai_client import OpenAIClient
 
 from backend.app.models.user import User
 
@@ -43,8 +41,7 @@ async def get_db():
         await session.close()
 
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
-
+bearer_scheme = HTTPBearer()
 def get_upload_directory():
     return Path(settings.UPLOAD_DIRECTORY)
 
@@ -66,18 +63,28 @@ async def get_upload_service(session: AsyncSession = Depends(get_db), upload_dir
     return UploadService(session, upload_repository, storage_service)
 
 
-async def get_current_user(token: str = Depends(oauth2_scheme), db_session: AsyncSession = Depends(get_db)) -> User:
+async def get_current_user(
+    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
+    db_session: AsyncSession = Depends(get_db),
+) -> User:
     jwt_service = JWTService()
+
+    token = credentials.credentials
 
     payload = jwt_service.verify_token(token)
 
     if payload["type"] != "access":
         raise InvalidTokenTypeError()
+
     user_id = payload["sub"]
+
     user_repository = UserRepository(db_session)
+
     user = await user_repository.get_by_id(user_id)
+
     if user is None:
         raise InvalidCredentialsError()
+
     return user
 
 async def get_analysis_service(
@@ -100,14 +107,9 @@ async def get_analysis_service(
         model=settings.NVIDIA_MODEL,
     )
 
-    openai_client = OpenAIClient(
-        api_key=settings.OPENAI_API_KEY,
-        model=settings.OPENAI_MODEL,
-    )
-
     ai_orchestrator = AIOrchestrator(
         primary_provider=nvidia_client,
-        fallback_provider=openai_client,
+        fallback_provider=nvidia_client,
     )
 
     return AnalysisService(
