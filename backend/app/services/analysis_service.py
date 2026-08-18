@@ -23,6 +23,7 @@ from backend.app.schemas.analysis import CreateAnalysisResponse
 from backend.app.services.exceptions import (
     AnalysisAlreadyExistsError,
     UploadNotFoundError,
+    AnalysisNotFoundError
 )
 from backend.app.services.storage_service import StorageService
 
@@ -135,3 +136,12 @@ class AnalysisService:
             await self._session.commit()
 
             raise
+    
+    async def get_analysis(self,user: User,analysis_id: UUID,) -> Analysis:
+
+        analysis = await self._analysis_repository.get_by_id_and_user(analysis_id=analysis_id,user_id=user.id)
+
+        if analysis is None:
+            raise AnalysisNotFoundError()
+
+        return analysis

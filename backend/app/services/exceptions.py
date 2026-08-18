@@ -1,3 +1,5 @@
+
+
 class TokenVerificationError(Exception):
     pass
 
@@ -42,3 +44,5 @@ class AnalysisAlreadyExistsError(Exception):
             "An analysis already exists for this upload."
             )
         
+class AnalysisNotFoundError(Exception):
+    pass
