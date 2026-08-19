@@ -5,7 +5,7 @@ from openai import AsyncOpenAI
 from backend.app.ai.parser import AIResponseParser
 from backend.app.ai.providers.base import AIProvider, AIProviderError
 from backend.app.ai.schemas import AIResponseSchema
-
+import logging
 
 class NVIDIAClient(AIProvider):
 
@@ -22,7 +22,6 @@ class NVIDIAClient(AIProvider):
         mime_type: str,
         prompt: str,
     ) -> AIResponseSchema:
-
         base64_image = base64.b64encode(image_bytes).decode("utf-8")
         image_data_url = f"data:{mime_type};base64,{base64_image}"
 

@@ -14,6 +14,7 @@ from backend.app.services.token_service import TokenService
 from backend.app.services.upload_service import UploadService
 from backend.app.services.storage_service import StorageService
 from backend.app.services.analysis_service import AnalysisService
+from backend.app.services.risk_scoring_service import RiskScoringService
 
 from backend.app.services.exceptions import (
     InvalidTokenTypeError,
@@ -141,7 +142,7 @@ async def get_analysis_service(
     analysis_repository = AnalysisRepository(session)
     ai_result_repository = AIResultRepository(session)
     risk_score_repository = RiskScoreRepository(session)
-
+    risk_scoring_service = RiskScoringService()
     storage_service = StorageService(
         upload_directory=Path(settings.UPLOAD_DIRECTORY)
     )
@@ -167,4 +168,5 @@ async def get_analysis_service(
         ai_orchestrator=ai_orchestrator,
         ai_result_repository=ai_result_repository,
         risk_score_repository=risk_score_repository,
+        risk_scoring_service=risk_scoring_service
     )

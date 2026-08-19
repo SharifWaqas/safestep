@@ -29,14 +29,27 @@ class AIResponseParser:
         )
 
     @staticmethod
+    def _normalize_content(content: str) -> str:
+        return content.replace("*", "").strip()
+
+    @staticmethod
     def _extract_risk_level(content: str) -> RiskLevel:
-        normalized = content.replace("*", "").strip()
+        normalized = AIResponseParser._normalize_content(content)
 
         match = re.search(
-            r"Risk Level\s*:\s*(SAFE|LOW|MEDIUM|HIGH|VERY[\s_]+HIGH)",
+            r"Scam/Risk Level\s*:\s*"
+            r"(SAFE|LOW|MEDIUM|HIGH|VERY[\s_]+HIGH)",
             normalized,
             re.IGNORECASE,
         )
+
+        if not match:
+            match = re.search(
+                r"Risk Level\s*:\s*"
+                r"(SAFE|LOW|MEDIUM|HIGH|VERY[\s_]+HIGH)",
+                normalized,
+                re.IGNORECASE,
+            )
 
         if not match:
             return RiskLevel.MEDIUM
@@ -47,51 +60,94 @@ class AIResponseParser:
 
     @staticmethod
     def _extract_summary(content: str) -> str:
-        normalized = content.replace("*", "")
+        normalized = AIResponseParser._normalize_content(content)
 
-        match = re.search(
-            r"Risk Level\s*:\s*(?:SAFE|LOW|MEDIUM|HIGH|VERY[\s_]+HIGH)"
-            r"(.*?)(?=Content Analysis\s*:|Suspicious Characteristics\s*:"
-            r"|Safe Practical Guidance\s*:|Reassurance\s*:|$)",
-            normalized,
-            re.IGNORECASE | re.DOTALL,
+        description = AIResponseParser._extract_section(
+            content=normalized,
+            section_names=[
+                "Content Description",
+                "Content Analysis",
+            ],
+            next_sections=[
+                "Warning Signs/Suspicious Characteristics",
+                "Warning Signs",
+                "Suspicious Characteristics",
+                "User Action",
+                "Recommended Action",
+                "Safe Practical Guidance",
+                "Reassurance",
+                "Additional Tips",
+                "Answer",
+            ],
         )
 
-        if match:
-            summary = match.group(1).strip()
+        if description:
+            sentences = re.split(
+                r"(?<=[.!?])\s+",
+                description.strip(),
+            )
 
-            if summary:
-                return summary
+            for sentence in sentences:
+                sentence = sentence.strip()
 
-        first_paragraph = content.strip().split("\n\n")[0].strip()
+                if sentence:
+                    return sentence
 
-        if first_paragraph:
-            return first_paragraph
+        summary = AIResponseParser._extract_section(
+            content=normalized,
+            section_names=["Summary"],
+            next_sections=[
+                "Scam/Risk Level",
+                "Risk Level",
+                "Overall Scam/Risk Level",
+                "Content Description",
+                "Content Analysis",
+                "Warning Signs/Suspicious Characteristics",
+                "Warning Signs",
+                "Suspicious Characteristics",
+                "User Action",
+                "Recommended Action",
+                "Safe Practical Guidance",
+                "Reassurance",
+                "Additional Tips",
+                "Answer",
+            ],
+        )
+
+        if summary:
+            return summary
 
         return "Unable to determine a summary."
 
     @staticmethod
     def _extract_section(
         content: str,
-        section_name: str,
+        section_names: list[str],
         next_sections: list[str],
     ) -> str:
-        normalized = content.replace("*", "")
 
-        escaped_section = re.escape(section_name)
+        normalized = AIResponseParser._normalize_content(content)
+
+        section_pattern = "|".join(
+            re.escape(section)
+            for section in section_names
+        )
 
         if next_sections:
             next_pattern = "|".join(
-                re.escape(section) for section in next_sections
+                re.escape(section)
+                for section in next_sections
             )
 
             pattern = (
-                rf"{escaped_section}\s*:\s*"
+                rf"(?:{section_pattern})\s*:\s*"
                 rf"(.*?)"
-                rf"(?={next_pattern}\s*:|$)"
+                rf"(?=(?:{next_pattern})\s*:|$)"
             )
         else:
-            pattern = rf"{escaped_section}\s*:\s*(.*)$"
+            pattern = (
+                rf"(?:{section_pattern})\s*:\s*(.*)$"
+            )
 
         match = re.search(
             pattern,
@@ -108,11 +164,20 @@ class AIResponseParser:
     def _extract_description(content: str) -> str:
         description = AIResponseParser._extract_section(
             content=content,
-            section_name="Content Analysis",
+            section_names=[
+                "Content Description",
+                "Content Analysis",
+            ],
             next_sections=[
+                "Warning Signs/Suspicious Characteristics",
+                "Warning Signs",
                 "Suspicious Characteristics",
+                "User Action",
+                "Recommended Action",
                 "Safe Practical Guidance",
                 "Reassurance",
+                "Additional Tips",
+                "Answer",
             ],
         )
 
@@ -125,9 +190,15 @@ class AIResponseParser:
     def _extract_solution(content: str) -> str:
         solution = AIResponseParser._extract_section(
             content=content,
-            section_name="Safe Practical Guidance",
+            section_names=[
+                "User Action",
+                "Recommended Action",
+                "Safe Practical Guidance",
+            ],
             next_sections=[
                 "Reassurance",
+                "Additional Tips",
+                "Answer",
             ],
         )
 
@@ -143,8 +214,11 @@ class AIResponseParser:
     def _extract_reassurance(content: str) -> str:
         reassurance = AIResponseParser._extract_section(
             content=content,
-            section_name="Reassurance",
-            next_sections=[],
+            section_names=["Reassurance"],
+            next_sections=[
+                "Additional Tips",
+                "Answer",
+            ],
         )
 
         if reassurance:
@@ -156,81 +230,133 @@ class AIResponseParser:
         )
 
     @staticmethod
+    def _looks_like_heading(value: str) -> bool:
+        value = value.strip()
+
+        if not value:
+            return False
+
+        return bool(
+            re.fullmatch(
+                r"(Summary|Scam/Risk Level|Risk Level|"
+                r"Overall Scam/Risk Level|"
+                r"Content Description|Content Analysis|"
+                r"Warning Signs/Suspicious Characteristics|"
+                r"Warning Signs|Suspicious Characteristics|"
+                r"User Action|Recommended Action|"
+                r"Safe Practical Guidance|"
+                r"Reassurance|Additional Tips|Answer)"
+                r"\s*:",
+                value,
+                re.IGNORECASE,
+            )
+        )
+
+    @classmethod
     def _extract_risk_factors(
+        cls,
         content: str,
     ) -> list[RiskFactorResult]:
 
-        normalized = content.lower()
+        warning_section = cls._extract_section(
+            content,
+            [
+                "Warning Signs/Suspicious Characteristics",
+                "Warning Signs",
+                "Suspicious Characteristics",
+            ],
+            [
+                "User Action",
+                "Recommended Action",
+                "Safe Practical Guidance",
+                "Reassurance",
+                "Additional Tips",
+                "Answer",
+            ],
+        )
+
+        if not warning_section:
+            return []
+
+        normalized = warning_section.lower()
 
         factors: list[RiskFactorResult] = []
 
-        risk_patterns = {
+        patterns: dict[RiskFactor, list[str]] = {
             RiskFactor.URGENCY_LANGUAGE: [
-                "urgency",
                 "urgent",
+                "urgency",
                 "immediately",
-                "immediate action",
+                "within 24 hours",
+                "within 48 hours",
                 "act now",
-                "verify immediately",
-                "without delay",
+                "limited time",
             ],
             RiskFactor.THREAT_LANGUAGE: [
                 "threat",
-                "suspended",
-                "permanent account limitations",
-                "account limitations",
-                "fraud charges",
-                "account at risk",
-                "lose access",
+                "threatening",
+                "legal action",
+                "arrest",
+                "penalty",
+                "consequences",
             ],
             RiskFactor.CREDENTIAL_REQUEST: [
-                "login credentials",
                 "password",
                 "username",
-                "verify your identity",
                 "credentials",
-                "sign in",
-                "log in",
+                "login credentials",
+                "verify your identity",
             ],
             RiskFactor.FINANCIAL_REQUEST: [
-                "bank account",
+                "payment",
+                "pay",
+                "money",
                 "financial information",
+                "bank account",
                 "credit card",
-                "debit card",
-                "payment information",
-                "banking information",
             ],
             RiskFactor.SUSPICIOUS_LINK: [
                 "suspicious link",
                 "phishing link",
-                "link provided",
-                "click on the link",
-                "click the link",
+                "malicious link",
+                "unknown link",
+                "untrusted link",
             ],
             RiskFactor.SUSPICIOUS_DOMAIN: [
                 "suspicious domain",
-                "phishing site",
-                "phishing website",
-                "malicious website",
-                "chase-secure-authenticate.com",
+                "malicious domain",
+                "fake domain",
+                "untrusted domain",
+                "does not appear to be a legitimate",
             ],
             RiskFactor.BRAND_IMPERSONATION: [
-                "claims to be from",
-                "claiming to be",
                 "impersonat",
                 "pretending to be",
+                "claims to be",
+                "fake amazon",
+                "fake bank",
+                "fake chase",
+            ],
+            RiskFactor.UNKNOWN_SENDER: [
+                "unknown sender",
+                "sender is unknown",
+                "unknown number",
+                "unknown phone number",
+                "unrecognized sender",
+                "unrecognized number",
             ],
             RiskFactor.LOGIN_FORM: [
-                "login form",
                 "login page",
-                "sign-in page",
+                "login form",
                 "sign in page",
+                "sign-in page",
             ],
             RiskFactor.PAYMENT_REQUEST: [
-                "payment",
-                "pay now",
-                "make a payment",
+                "requests payment",
+                "request payment",
+                "demands payment",
                 "payment request",
+                "asks the user to pay",
             ],
             RiskFactor.REWARD_LANGUAGE: [
                 "reward",
@@ -241,31 +367,29 @@ class AIResponseParser:
             ],
             RiskFactor.UNREALISTIC_PRICE: [
                 "too good to be true",
-                "unbelievable price",
                 "unrealistic price",
+                "unbelievable price",
                 "huge discount",
+                "massive discount",
             ],
         }
 
-        for risk_factor, patterns in risk_patterns.items():
+        for risk_factor, factor_patterns in patterns.items():
 
             matched = any(
                 pattern in normalized
-                for pattern in patterns
+                for pattern in factor_patterns
             )
 
-            if not matched:
-                continue
-
-            factors.append(
-                RiskFactorResult(
-                    risk_factor=risk_factor,
-                    value=0.8,
-                    description=(
-                        f"Detected indicators related to "
-                        f"{risk_factor.value.replace('_', ' ')}."
-                    ),
+            if matched:
+                factors.append(
+                    RiskFactorResult(
+                        risk_factor=risk_factor,
+                        description=(
+                            f"Detected indicators related to "
+                            f"{risk_factor.value.replace('_', ' ')}."
+                        ),
+                    )
                 )
-            )
 
         return factors
