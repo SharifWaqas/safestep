@@ -1,5 +1,5 @@
 from datetime import datetime, timezone
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -20,15 +20,14 @@ from backend.app.repositories.upload_repository import UploadRepository
 
 from backend.app.schemas.analysis import CreateAnalysisResponse
 
-
-
 from backend.app.services.exceptions import (
     AnalysisAlreadyExistsError,
+    AnalysisNotFoundError,
     UploadNotFoundError,
-    AnalysisNotFoundError
 )
-from backend.app.services.storage_service import StorageService
+
 from backend.app.services.risk_scoring_service import RiskScoringService
+from backend.app.services.storage_service import StorageService
 
 
 class AnalysisService:
@@ -43,7 +42,7 @@ class AnalysisService:
         ai_orchestrator: AIOrchestrator,
         ai_result_repository: AIResultRepository,
         risk_score_repository: RiskScoreRepository,
-        risk_scoring_service: RiskScoringService
+        risk_scoring_service: RiskScoringService,
     ) -> None:
         self._session = session
         self._upload_repository = upload_repository
@@ -56,10 +55,10 @@ class AnalysisService:
         self._risk_scoring_service = risk_scoring_service
 
     async def create_analysis(
-        self,
-        user: User,
-        upload_id: UUID,
-    ) -> CreateAnalysisResponse:
+    self,
+    user: User,
+    upload_id: UUID,
+) -> CreateAnalysisResponse:
 
         upload = await self._upload_repository.get_by_id_and_user(
             upload_id,
@@ -77,25 +76,44 @@ class AnalysisService:
             raise AnalysisAlreadyExistsError()
 
         analysis = Analysis(
+            id=uuid4(),
             upload_id=upload.id,
             status=AnalysisStatus.PENDING,
             started_at=datetime.now(timezone.utc),
         )
 
-        try:
-            await self._analysis_repository.save(analysis)
-            await self._session.commit()
-            await self._session.refresh(analysis)
+        await self._analysis_repository.save(analysis)
+        await self._session.commit()
+        await self._session.refresh(analysis)
 
-            image_bytes = await self._storage_service.get_file(upload.storage_path)
+        try:
+            image_bytes = await self._storage_service.get_file(
+                upload.storage_path
+            )
 
             prompt = self._prompt_builder.build()
 
-            result = await self._ai_orchestrator.analyze_image(image_bytes=image_bytes,mime_type=upload.content_type,prompt=prompt)
+            result = await self._ai_orchestrator.analyze_image(
+                image_bytes=image_bytes,
+                mime_type=upload.content_type,
+                prompt=prompt,
+            )
 
-            scored_factors = self._risk_scoring_service.score_factors(result.risk_factors)
-            overall_score = self._risk_scoring_service.calculate_overall_score(scored_factors)
-            risk_level = self._risk_scoring_service.determine_risk_level(overall_score)            
+            scored_factors = self._risk_scoring_service.score_factors(
+                result.risk_factors
+            )
+
+            overall_score = (
+                self._risk_scoring_service.calculate_overall_score(
+                    scored_factors
+                )
+            )
+
+            risk_level = (
+                self._risk_scoring_service.determine_risk_level(
+                    overall_score
+                )
+            )
 
             ai_result = AIResult(
                 analysis_id=analysis.id,
@@ -131,18 +149,26 @@ class AnalysisService:
             )
 
         except Exception:
-            await self._session.rollback()
-
             analysis.status = AnalysisStatus.FAILED
             analysis.completed_at = datetime.now(timezone.utc)
 
+            await self._session.rollback()
+
+            await self._analysis_repository.save(analysis)
             await self._session.commit()
 
             raise
-    
-    async def get_analysis(self,user: User,analysis_id: UUID,) -> Analysis:
 
-        analysis = await self._analysis_repository.get_by_id_and_user(analysis_id=analysis_id,user_id=user.id)
+    async def get_analysis(
+        self,
+        user: User,
+        analysis_id: UUID,
+    ) -> Analysis:
+
+        analysis = await self._analysis_repository.get_by_id_and_user(
+            analysis_id=analysis_id,
+            user_id=user.id,
+        )
 
         if analysis is None:
             raise AnalysisNotFoundError()

@@ -14,6 +14,13 @@ const ENDPOINTS = {
   logout: '/auth/logout',
 } as const
 
+function storeTokens(tokens: AuthTokens): void {
+  tokenStore.setTokens(
+    tokens.access_token,
+    tokens.refresh_token,
+  )
+}
+
 export const authApi = {
   async login(payload: LoginPayload): Promise<AuthTokens> {
     const tokens: AuthTokens = USE_MOCKS
@@ -27,12 +34,14 @@ export const authApi = {
           },
         )
 
-    tokenStore.set(tokens.access_token)
+    storeTokens(tokens)
 
     return tokens
   },
 
-  async register(payload: RegisterPayload): Promise<AuthTokens> {
+  async register(
+    payload: RegisterPayload,
+  ): Promise<AuthTokens> {
     const tokens: AuthTokens = USE_MOCKS
       ? await mockApi.register(payload)
       : await apiClient.post<AuthTokens>(
@@ -44,12 +53,14 @@ export const authApi = {
           },
         )
 
-    tokenStore.set(tokens.access_token)
+    storeTokens(tokens)
 
     return tokens
   },
 
-  async refresh(refreshToken: string): Promise<AuthTokens> {
+  async refresh(
+    refreshToken: string,
+  ): Promise<AuthTokens> {
     const tokens = await apiClient.post<AuthTokens>(
       ENDPOINTS.refresh,
       JSON.stringify({
@@ -61,27 +72,29 @@ export const authApi = {
       },
     )
 
-    tokenStore.set(tokens.access_token)
+    storeTokens(tokens)
 
     return tokens
   },
 
   async logout(refreshToken: string): Promise<void> {
-    await apiClient.post(
-      ENDPOINTS.logout,
-      JSON.stringify({
-        refresh_token: refreshToken,
-      }),
-      {
-        headers: jsonHeaders(),
-        skipAuth: true,
-      },
-    )
-
-    tokenStore.clear()
+    try {
+      await apiClient.post(
+        ENDPOINTS.logout,
+        JSON.stringify({
+          refresh_token: refreshToken,
+        }),
+        {
+          headers: jsonHeaders(),
+          skipAuth: true,
+        },
+      )
+    } finally {
+      tokenStore.clear()
+    }
   },
 
   hasSession(): boolean {
-    return tokenStore.get() !== null
+    return tokenStore.getAccessToken() !== null
   },
 }

@@ -10,7 +10,10 @@ from backend.app.api.dependencies import (
 
 from backend.app.models.user import User
 
-from backend.app.schemas.analysis import AnalysisResponse
+from backend.app.schemas.analysis import (
+    AnalysisResponse,
+    CreateAnalysisResponse,
+)
 
 from backend.app.services.analysis_service import AnalysisService
 
@@ -21,7 +24,10 @@ router = APIRouter(
 )
 
 
-@router.post("/{upload_id}")
+@router.post(
+    "/{upload_id}",
+    response_model=CreateAnalysisResponse,
+)
 async def create_analysis(
     upload_id: UUID,
     user: Annotated[

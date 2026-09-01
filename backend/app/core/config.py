@@ -25,5 +25,6 @@ class Settings(BaseSettings):
     NVIDIA_API_KEY: str
     NVIDIA_MODEL: str
 
-
+    OPENAI_API_KEY: str
+    OPENAI_MODEL: str
 settings = Settings()

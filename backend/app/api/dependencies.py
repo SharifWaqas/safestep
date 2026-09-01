@@ -31,6 +31,7 @@ from backend.app.repositories.risk_score_repository import RiskScoreRepository
 from backend.app.ai.prompts import PromptBuilder
 from backend.app.ai.orchestrator import AIOrchestrator
 from backend.app.ai.providers.nvidia_client import NVIDIAClient
+from backend.app.ai.providers.openai_client import OpenAIClient
 
 from backend.app.models.user import User
 
@@ -154,8 +155,13 @@ async def get_analysis_service(
         model=settings.NVIDIA_MODEL,
     )
 
+    openai_client = OpenAIClient(
+    api_key=settings.OPENAI_API_KEY,
+    model=settings.OPENAI_MODEL,
+    )
+
     ai_orchestrator = AIOrchestrator(
-        primary_provider=nvidia_client,
+        primary_provider=openai_client,
         fallback_provider=nvidia_client,
     )
 
