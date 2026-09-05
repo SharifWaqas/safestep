@@ -1,41 +1,56 @@
-from sqlalchemy.ext.asyncio import AsyncSession
-from fastapi import UploadFile
 from uuid import UUID
 
+from fastapi import UploadFile
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from backend.app.core.config import settings
-
-from backend.app.services.exceptions import InvalidFileTypeError, FileTooLargeError, UploadNotFoundError
-from backend.app.services.storage_service import StorageService
-from backend.app.services.audit_log_service import AuditLogService
-
-from backend.app.schemas.upload import UploadResponse, UploadDetailResponse, DeleteUploadResponse, UploadSummaryResponse
-
-from backend.app.models.user import User
-from backend.app.models.upload import Upload
-
-from backend.app.repositories.upload_repository import UploadRepository
 
 from backend.app.enums.audit_action import AuditAction
 from backend.app.enums.audit_resource_type import AuditResourceType
 
+from backend.app.models.upload import Upload
+from backend.app.models.user import User
+
+from backend.app.repositories.upload_repository import UploadRepository
+
+from backend.app.schemas.upload import (
+    UploadResponse,
+    UploadDetailResponse,
+    DeleteUploadResponse,
+    UploadSummaryResponse,
+)
+
+from backend.app.services.audit_log_service import AuditLogService
+from backend.app.services.exceptions import (
+    InvalidFileTypeError,
+    FileTooLargeError,
+    UploadNotFoundError,
+)
+from backend.app.services.storage_service import StorageService
 
 
 class UploadService:
 
     def __init__(
-            self, 
-            session: AsyncSession,
-            upload_repository: UploadRepository,
-            storage_service: StorageService,
-            audit_log_service: AuditLogService
+        self,
+        session: AsyncSession,
+        upload_repository: UploadRepository,
+        storage_service: StorageService,
+        audit_log_service: AuditLogService,
     ) -> None:
         self._session = session
         self._upload_repository = upload_repository
         self._storage_service = storage_service
         self._audit_log_service = audit_log_service
 
-    async def upload_file(self, user: User, file: UploadFile) -> UploadResponse:
+    async def upload_file(
+        self,
+        user: User,
+        file: UploadFile,
+    ) -> UploadResponse:
+
         self._validate_upload(file)
+
         storage_result = await self._storage_service.save_file(file)
 
         try:
@@ -48,6 +63,7 @@ class UploadService:
             )
 
             await self._upload_repository.save(upload_object)
+
             await self._session.flush()
 
             await self._audit_log_service.log(
@@ -67,40 +83,63 @@ class UploadService:
 
         except Exception:
             await self._session.rollback()
+
             await self._storage_service.delete_file(
                 storage_result.storage_path
             )
+
             raise
 
-    def _validate_upload(self, file: UploadFile):
+    def _validate_upload(
+        self,
+        file: UploadFile,
+    ) -> None:
+
         allowed_content_types = {
             "image/png",
             "image/jpeg",
-            "image/jpg"
+            "image/jpg",
         }
+
         content_type = file.content_type
-        file.file.seek(0, 2)      
-        size = file.file.tell()   
-        file.file.seek(0)         
+
+        file.file.seek(0, 2)
+        size = file.file.tell()
+        file.file.seek(0)
 
         if content_type not in allowed_content_types:
             raise InvalidFileTypeError
 
-        if size > settings.MAX_UPLOAD_SIZE :
-            raise FileTooLargeError        
+        if size > settings.MAX_UPLOAD_SIZE:
+            raise FileTooLargeError
 
-    async def get_upload(self, user: User, upload_id: UUID) -> UploadDetailResponse:
-        upload = await self._upload_repository.get_by_id_and_user(upload_id, user.id)
+    async def get_upload(
+        self,
+        user: User,
+        upload_id: UUID,
+    ) -> UploadDetailResponse:
+
+        upload = await self._upload_repository.get_by_id(upload_id)
 
         if upload is None:
             raise UploadNotFoundError()
 
+        if upload.user_id != user.id:
+            await self._audit_log_service.log(
+                action=AuditAction.ACCESS_DENIED,
+                resource_type=AuditResourceType.UPLOAD,
+                resource_id=upload.id,
+                actor_user_id=user.id,
+            )
+
+            raise UploadNotFoundError()
+
         return UploadDetailResponse(
-            file_name = upload.file_name,
-            file_size = upload.file_size,
-            content_type = upload.content_type,
-            upload_id = upload.id,
-            created_at = upload.created_at 
+            file_name=upload.file_name,
+            file_size=upload.file_size,
+            content_type=upload.content_type,
+            upload_id=upload.id,
+            created_at=upload.created_at,
         )
 
     async def delete_upload(
@@ -109,32 +148,38 @@ class UploadService:
         upload_id: UUID,
     ) -> DeleteUploadResponse:
 
-        upload = await self._upload_repository.get_by_id_and_user(
-            upload_id,
-            user.id,
-        )
+        upload = await self._upload_repository.get_by_id(upload_id)
 
         if upload is None:
             raise UploadNotFoundError()
 
-        deleted_upload_id = upload.id
-        storage_path = upload.storage_path
+        if upload.user_id != user.id:
+            await self._audit_log_service.log(
+                action=AuditAction.ACCESS_DENIED,
+                resource_type=AuditResourceType.UPLOAD,
+                resource_id=upload.id,
+                actor_user_id=user.id,
+            )
+
+            raise UploadNotFoundError()
 
         await self._upload_repository.delete(upload)
 
         await self._audit_log_service.log(
             action=AuditAction.UPLOAD_DELETED,
             resource_type=AuditResourceType.UPLOAD,
-            resource_id=deleted_upload_id,
+            resource_id=upload.id,
             actor_user_id=user.id,
         )
 
         await self._session.commit()
 
-        await self._storage_service.delete_file(storage_path)
+        await self._storage_service.delete_file(
+            upload.storage_path
+        )
 
         return DeleteUploadResponse(
-            upload_id=deleted_upload_id,
+            upload_id=upload.id,
             message="Upload deleted successfully.",
         )
 
@@ -142,9 +187,12 @@ class UploadService:
         self,
         user: User,
     ) -> list[UploadSummaryResponse]:
+
         upload_responses = []
 
-        uploads = await self._upload_repository.list_uploads(user.id)
+        uploads = await self._upload_repository.list_uploads(
+            user.id
+        )
 
         for upload in uploads:
             upload_responses.append(

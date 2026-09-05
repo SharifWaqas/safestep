@@ -21,9 +21,26 @@ class AnalysisRepository(BaseRepository[Analysis]):
         self,
         upload_id: UUID,
     ) -> Analysis | None:
-
         query = select(self._model).where(
             self._model.upload_id == upload_id
+        )
+
+        result = await self._db_session.execute(query)
+
+        return result.scalar_one_or_none()
+
+    async def get_by_id(
+        self,
+        analysis_id: UUID,
+    ) -> Analysis | None:
+        query = (
+            select(self._model)
+            .options(
+                selectinload(self._model.upload),
+                selectinload(self._model.ai_result),
+                selectinload(self._model.risk_scores),
+            )
+            .where(self._model.id == analysis_id)
         )
 
         result = await self._db_session.execute(query)
@@ -35,7 +52,6 @@ class AnalysisRepository(BaseRepository[Analysis]):
         analysis_id: UUID,
         user_id: UUID,
     ) -> Analysis | None:
-
         query = (
             select(self._model)
             .options(

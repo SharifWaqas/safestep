@@ -87,6 +87,7 @@ async def get_auth_service(
         audit_log_service=audit_log_service,
     )
 
+
 async def get_upload_service(
     session: Annotated[AsyncSession, Depends(get_db)],
     upload_directory: Annotated[
@@ -101,10 +102,17 @@ async def get_upload_service(
         upload_directory,
     )
 
+    audit_log_repository = AuditLogRepository(session)
+
+    audit_log_service = AuditLogService(
+        audit_log_repository=audit_log_repository,
+    )
+
     return UploadService(
-        session,
-        upload_repository,
-        storage_service,
+        session=session,
+        upload_repository=upload_repository,
+        storage_service=storage_service,
+        audit_log_service=audit_log_service,
     )
 
 
@@ -151,7 +159,9 @@ async def get_analysis_service(
     analysis_repository = AnalysisRepository(session)
     ai_result_repository = AIResultRepository(session)
     risk_score_repository = RiskScoreRepository(session)
+
     risk_scoring_service = RiskScoringService()
+
     storage_service = StorageService(
         upload_directory=Path(settings.UPLOAD_DIRECTORY)
     )
@@ -164,13 +174,19 @@ async def get_analysis_service(
     )
 
     openai_client = OpenAIClient(
-    api_key=settings.OPENAI_API_KEY,
-    model=settings.OPENAI_MODEL,
+        api_key=settings.OPENAI_API_KEY,
+        model=settings.OPENAI_MODEL,
     )
 
     ai_orchestrator = AIOrchestrator(
         primary_provider=openai_client,
         fallback_provider=nvidia_client,
+    )
+
+    audit_log_repository = AuditLogRepository(session)
+
+    audit_log_service = AuditLogService(
+        audit_log_repository=audit_log_repository,
     )
 
     return AnalysisService(
@@ -182,5 +198,6 @@ async def get_analysis_service(
         ai_orchestrator=ai_orchestrator,
         ai_result_repository=ai_result_repository,
         risk_score_repository=risk_score_repository,
-        risk_scoring_service=risk_scoring_service
+        risk_scoring_service=risk_scoring_service,
+        audit_log_service=audit_log_service,
     )

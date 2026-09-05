@@ -7,6 +7,8 @@ from backend.app.ai.orchestrator import AIOrchestrator
 from backend.app.ai.prompts import PromptBuilder
 
 from backend.app.enums.analysis import AnalysisStatus
+from backend.app.enums.audit_action import AuditAction
+from backend.app.enums.audit_resource_type import AuditResourceType
 
 from backend.app.models.analysis import Analysis
 from backend.app.models.ai_result import AIResult
@@ -26,6 +28,7 @@ from backend.app.services.exceptions import (
     UploadNotFoundError,
 )
 
+from backend.app.services.audit_log_service import AuditLogService
 from backend.app.services.risk_scoring_service import RiskScoringService
 from backend.app.services.storage_service import StorageService
 
@@ -43,6 +46,7 @@ class AnalysisService:
         ai_result_repository: AIResultRepository,
         risk_score_repository: RiskScoreRepository,
         risk_scoring_service: RiskScoringService,
+        audit_log_service: AuditLogService,
     ) -> None:
         self._session = session
         self._upload_repository = upload_repository
@@ -53,12 +57,13 @@ class AnalysisService:
         self._ai_result_repository = ai_result_repository
         self._risk_score_repository = risk_score_repository
         self._risk_scoring_service = risk_scoring_service
+        self._audit_log_service = audit_log_service
 
     async def create_analysis(
-    self,
-    user: User,
-    upload_id: UUID,
-) -> CreateAnalysisResponse:
+        self,
+        user: User,
+        upload_id: UUID,
+    ) -> CreateAnalysisResponse:
 
         upload = await self._upload_repository.get_by_id_and_user(
             upload_id,
@@ -83,10 +88,25 @@ class AnalysisService:
         )
 
         await self._analysis_repository.save(analysis)
+
+        await self._audit_log_service.log(
+            action=AuditAction.ANALYSIS_REQUESTED,
+            resource_type=AuditResourceType.ANALYSIS,
+            resource_id=analysis.id,
+            actor_user_id=user.id,
+        )
+
         await self._session.commit()
         await self._session.refresh(analysis)
 
         try:
+            await self._audit_log_service.log(
+                action=AuditAction.ANALYSIS_STARTED,
+                resource_type=AuditResourceType.ANALYSIS,
+                resource_id=analysis.id,
+                actor_user_id=user.id,
+            )
+
             image_bytes = await self._storage_service.get_file(
                 upload.storage_path
             )
@@ -139,6 +159,13 @@ class AnalysisService:
             analysis.status = AnalysisStatus.COMPLETED
             analysis.completed_at = datetime.now(timezone.utc)
 
+            await self._audit_log_service.log(
+                action=AuditAction.ANALYSIS_COMPLETED,
+                resource_type=AuditResourceType.ANALYSIS,
+                resource_id=analysis.id,
+                actor_user_id=user.id,
+            )
+
             await self._session.commit()
 
             return CreateAnalysisResponse(
@@ -155,6 +182,14 @@ class AnalysisService:
             await self._session.rollback()
 
             await self._analysis_repository.save(analysis)
+
+            await self._audit_log_service.log(
+                action=AuditAction.ANALYSIS_FAILED,
+                resource_type=AuditResourceType.ANALYSIS,
+                resource_id=analysis.id,
+                actor_user_id=user.id,
+            )
+
             await self._session.commit()
 
             raise
@@ -165,12 +200,21 @@ class AnalysisService:
         analysis_id: UUID,
     ) -> Analysis:
 
-        analysis = await self._analysis_repository.get_by_id_and_user(
-            analysis_id=analysis_id,
-            user_id=user.id,
+        analysis = await self._analysis_repository.get_by_id(
+            analysis_id
         )
 
         if analysis is None:
+            raise AnalysisNotFoundError()
+
+        if analysis.upload.user_id != user.id:
+            await self._audit_log_service.log(
+                action=AuditAction.ACCESS_DENIED,
+                resource_type=AuditResourceType.ANALYSIS,
+                resource_id=analysis.id,
+                actor_user_id=user.id,
+            )
+
             raise AnalysisNotFoundError()
 
         return analysis

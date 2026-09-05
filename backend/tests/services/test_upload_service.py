@@ -40,6 +40,7 @@ def db_session():
 def upload_repository():
     repository = MagicMock()
     repository.save = AsyncMock()
+    repository.get_by_id = AsyncMock()
     repository.get_by_id_and_user = AsyncMock()
     repository.delete = AsyncMock()
     repository.list_uploads = AsyncMock()
@@ -269,6 +270,7 @@ async def test_upload_file_rolls_back_and_deletes_storage_on_failure(
 async def test_get_upload_returns_upload_detail(
     upload_service,
     upload_repository,
+    audit_log_service,
     user,
 ):
     upload_id = uuid4()
@@ -276,21 +278,21 @@ async def test_get_upload_returns_upload_detail(
 
     upload = MagicMock(spec=Upload)
     upload.id = upload_id
+    upload.user_id = user.id
     upload.file_name = "test.jpg"
     upload.file_size = 1024
     upload.content_type = "image/jpeg"
     upload.created_at = created_at
 
-    upload_repository.get_by_id_and_user.return_value = upload
+    upload_repository.get_by_id.return_value = upload
 
     result = await upload_service.get_upload(
         user=user,
         upload_id=upload_id,
     )
 
-    upload_repository.get_by_id_and_user.assert_awaited_once_with(
-        upload_id,
-        user.id,
+    upload_repository.get_by_id.assert_awaited_once_with(
+        upload_id
     )
 
     assert result.upload_id == upload_id
@@ -299,16 +301,19 @@ async def test_get_upload_returns_upload_detail(
     assert result.content_type == "image/jpeg"
     assert result.created_at == created_at
 
+    audit_log_service.log.assert_not_awaited()
+
 
 @pytest.mark.asyncio
 async def test_get_upload_raises_when_upload_not_found(
     upload_service,
     upload_repository,
+    audit_log_service,
     user,
 ):
     upload_id = uuid4()
 
-    upload_repository.get_by_id_and_user.return_value = None
+    upload_repository.get_by_id.return_value = None
 
     with pytest.raises(UploadNotFoundError):
         await upload_service.get_upload(
@@ -316,9 +321,44 @@ async def test_get_upload_raises_when_upload_not_found(
             upload_id=upload_id,
         )
 
-    upload_repository.get_by_id_and_user.assert_awaited_once_with(
-        upload_id,
-        user.id,
+    upload_repository.get_by_id.assert_awaited_once_with(
+        upload_id
+    )
+
+    audit_log_service.log.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_get_upload_denies_access_to_other_users_upload(
+    upload_service,
+    upload_repository,
+    audit_log_service,
+    user,
+):
+    upload_id = uuid4()
+    other_user_id = uuid4()
+
+    upload = MagicMock(spec=Upload)
+    upload.id = upload_id
+    upload.user_id = other_user_id
+
+    upload_repository.get_by_id.return_value = upload
+
+    with pytest.raises(UploadNotFoundError):
+        await upload_service.get_upload(
+            user=user,
+            upload_id=upload_id,
+        )
+
+    upload_repository.get_by_id.assert_awaited_once_with(
+        upload_id
+    )
+
+    audit_log_service.log.assert_awaited_once_with(
+        action=AuditAction.ACCESS_DENIED,
+        resource_type=AuditResourceType.UPLOAD,
+        resource_id=upload_id,
+        actor_user_id=user.id,
     )
 
 
@@ -335,18 +375,18 @@ async def test_delete_upload_deletes_upload_and_storage(
 
     upload = MagicMock(spec=Upload)
     upload.id = upload_id
+    upload.user_id = user.id
     upload.storage_path = "uploads/test-id.jpg"
 
-    upload_repository.get_by_id_and_user.return_value = upload
+    upload_repository.get_by_id.return_value = upload
 
     result = await upload_service.delete_upload(
         user=user,
         upload_id=upload_id,
     )
 
-    upload_repository.get_by_id_and_user.assert_awaited_once_with(
-        upload_id,
-        user.id,
+    upload_repository.get_by_id.assert_awaited_once_with(
+        upload_id
     )
 
     upload_repository.delete.assert_awaited_once_with(upload)
@@ -378,7 +418,7 @@ async def test_delete_upload_raises_when_upload_not_found(
 ):
     upload_id = uuid4()
 
-    upload_repository.get_by_id_and_user.return_value = None
+    upload_repository.get_by_id.return_value = None
 
     with pytest.raises(UploadNotFoundError):
         await upload_service.delete_upload(
@@ -389,6 +429,43 @@ async def test_delete_upload_raises_when_upload_not_found(
     upload_repository.delete.assert_not_awaited()
     audit_log_service.log.assert_not_awaited()
     db_session.commit.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_delete_upload_denies_access_to_other_users_upload(
+    upload_service,
+    upload_repository,
+    db_session,
+    audit_log_service,
+    storage_service,
+    user,
+):
+    upload_id = uuid4()
+    other_user_id = uuid4()
+
+    upload = MagicMock(spec=Upload)
+    upload.id = upload_id
+    upload.user_id = other_user_id
+    upload.storage_path = "uploads/test-id.jpg"
+
+    upload_repository.get_by_id.return_value = upload
+
+    with pytest.raises(UploadNotFoundError):
+        await upload_service.delete_upload(
+            user=user,
+            upload_id=upload_id,
+        )
+
+    upload_repository.delete.assert_not_awaited()
+    storage_service.delete_file.assert_not_awaited()
+    db_session.commit.assert_not_awaited()
+
+    audit_log_service.log.assert_awaited_once_with(
+        action=AuditAction.ACCESS_DENIED,
+        resource_type=AuditResourceType.UPLOAD,
+        resource_id=upload_id,
+        actor_user_id=user.id,
+    )
 
 
 @pytest.mark.asyncio

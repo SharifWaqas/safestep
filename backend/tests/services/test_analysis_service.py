@@ -4,19 +4,30 @@ from uuid import uuid4
 
 import pytest
 
+from backend.app.ai.schemas import AIResponseSchema, RiskFactorResult
 from backend.app.enums.analysis import AnalysisStatus
+from backend.app.enums.audit_action import AuditAction
+from backend.app.enums.audit_resource_type import AuditResourceType
 from backend.app.enums.risk_factor import RiskFactor
 from backend.app.enums.risk_level import RiskLevel
 from backend.app.models.analysis import Analysis
-from backend.app.ai.schemas import AIResponseSchema, RiskFactorResult
 from backend.app.services.analysis_service import AnalysisService
 from backend.app.services.exceptions import (
-    AnalysisAlreadyExistsError, UploadNotFoundError
+    AnalysisAlreadyExistsError,
+    AnalysisNotFoundError,
+    UploadNotFoundError,
 )
 
 
 @pytest.fixture
-def service():
+def audit_log_service():
+    service = Mock()
+    service.log = AsyncMock()
+    return service
+
+
+@pytest.fixture
+def service(audit_log_service):
     service = AnalysisService(
         session=AsyncMock(),
         upload_repository=AsyncMock(),
@@ -27,6 +38,7 @@ def service():
         prompt_builder=Mock(),
         ai_orchestrator=AsyncMock(),
         risk_scoring_service=Mock(),
+        audit_log_service=audit_log_service,
     )
 
     return service
@@ -75,6 +87,7 @@ def ai_result():
         ],
     )
 
+
 @pytest.mark.asyncio
 async def test_create_analysis_success(
     service,
@@ -82,13 +95,13 @@ async def test_create_analysis_success(
     upload_id,
     upload,
     ai_result,
+    audit_log_service,
 ):
     service._upload_repository.get_by_id_and_user.return_value = upload
     service._analysis_repository.get_by_upload_id.return_value = None
 
     service._storage_service.get_file.return_value = b"image-bytes"
     service._prompt_builder.build.return_value = "Analyze this image."
-
     service._ai_orchestrator.analyze_image.return_value = ai_result
 
     scored_factors = [
@@ -153,6 +166,32 @@ async def test_create_analysis_success(
         0.40
     )
 
+    assert audit_log_service.log.await_count == 3
+
+    first_audit_call = audit_log_service.log.await_args_list[0]
+    assert first_audit_call.kwargs == {
+        "action": AuditAction.ANALYSIS_REQUESTED,
+        "resource_type": AuditResourceType.ANALYSIS,
+        "resource_id": response.analysis_id,
+        "actor_user_id": user.id,
+    }
+
+    second_audit_call = audit_log_service.log.await_args_list[1]
+    assert second_audit_call.kwargs == {
+        "action": AuditAction.ANALYSIS_STARTED,
+        "resource_type": AuditResourceType.ANALYSIS,
+        "resource_id": response.analysis_id,
+        "actor_user_id": user.id,
+    }
+
+    third_audit_call = audit_log_service.log.await_args_list[2]
+    assert third_audit_call.kwargs == {
+        "action": AuditAction.ANALYSIS_COMPLETED,
+        "resource_type": AuditResourceType.ANALYSIS,
+        "resource_id": response.analysis_id,
+        "actor_user_id": user.id,
+    }
+
     service._session.commit.assert_awaited()
 
 
@@ -161,6 +200,7 @@ async def test_create_analysis_upload_not_found(
     service,
     user,
     upload_id,
+    audit_log_service,
 ):
     service._upload_repository.get_by_id_and_user.return_value = None
 
@@ -176,6 +216,7 @@ async def test_create_analysis_upload_not_found(
     )
 
     service._analysis_repository.get_by_upload_id.assert_not_awaited()
+    audit_log_service.log.assert_not_awaited()
 
 
 @pytest.mark.asyncio
@@ -184,6 +225,7 @@ async def test_create_analysis_already_exists(
     user,
     upload_id,
     upload,
+    audit_log_service,
 ):
     existing_analysis = Mock(spec=Analysis)
 
@@ -208,54 +250,54 @@ async def test_create_analysis_already_exists(
     )
 
     service._analysis_repository.save.assert_not_awaited()
+    audit_log_service.log.assert_not_awaited()
 
 
 @pytest.mark.asyncio
 async def test_create_analysis_creates_pending_analysis(
-        service,
-        user,
-        upload_id,
-        upload,
-        ai_result,
-    ):
-        service._upload_repository.get_by_id_and_user.return_value = upload
-        service._analysis_repository.get_by_upload_id.return_value = None
+    service,
+    user,
+    upload_id,
+    upload,
+    ai_result,
+):
+    service._upload_repository.get_by_id_and_user.return_value = upload
+    service._analysis_repository.get_by_upload_id.return_value = None
 
-        service._storage_service.get_file.return_value = b"image-bytes"
-        service._prompt_builder.build.return_value = "Analyze this image."
-        service._ai_orchestrator.analyze_image.return_value = ai_result
+    service._storage_service.get_file.return_value = b"image-bytes"
+    service._prompt_builder.build.return_value = "Analyze this image."
+    service._ai_orchestrator.analyze_image.return_value = ai_result
 
-        service._risk_scoring_service.score_factors.return_value = []
-        service._risk_scoring_service.calculate_overall_score.return_value = 0
-        service._risk_scoring_service.determine_risk_level.return_value = (
-            RiskLevel.SAFE
-        )
+    service._risk_scoring_service.score_factors.return_value = []
+    service._risk_scoring_service.calculate_overall_score.return_value = 0
+    service._risk_scoring_service.determine_risk_level.return_value = (
+        RiskLevel.SAFE
+    )
 
-        # Capture the state of the Analysis object at the moment
-        # repository.save() is called.
-        saved_analysis = None
+    saved_analysis = None
 
-        async def capture_analysis(analysis):
-            nonlocal saved_analysis
+    async def capture_analysis(analysis):
+        nonlocal saved_analysis
 
-            saved_analysis = {
-                "upload_id": analysis.upload_id,
-                "status": analysis.status,
-                "started_at": analysis.started_at,
-                "completed_at": analysis.completed_at,
-            }
+        saved_analysis = {
+            "upload_id": analysis.upload_id,
+            "status": analysis.status,
+            "started_at": analysis.started_at,
+            "completed_at": analysis.completed_at,
+        }
 
-        service._analysis_repository.save.side_effect = capture_analysis
+    service._analysis_repository.save.side_effect = capture_analysis
 
-        await service.create_analysis(
-            user=user,
-            upload_id=upload_id,
-        )
+    await service.create_analysis(
+        user=user,
+        upload_id=upload_id,
+    )
 
-        assert saved_analysis is not None
-        assert saved_analysis["upload_id"] == upload_id
-        assert saved_analysis["status"] == AnalysisStatus.PENDING
-        assert saved_analysis["started_at"] is not None
+    assert saved_analysis is not None
+    assert saved_analysis["upload_id"] == upload_id
+    assert saved_analysis["status"] == AnalysisStatus.PENDING
+    assert saved_analysis["started_at"] is not None
+
 
 @pytest.mark.asyncio
 async def test_create_analysis_uses_ai_risk_factors_for_scoring(
@@ -365,6 +407,7 @@ async def test_create_analysis_ai_failure_rolls_back(
     user,
     upload_id,
     upload,
+    audit_log_service,
 ):
     service._upload_repository.get_by_id_and_user.return_value = upload
     service._analysis_repository.get_by_upload_id.return_value = None
@@ -384,6 +427,25 @@ async def test_create_analysis_ai_failure_rolls_back(
 
     service._session.rollback.assert_awaited_once()
 
+    analysis_id = (
+        service._analysis_repository.save.await_args.args[0].id
+    )
+
+    audit_actions = [
+        call.kwargs["action"]
+        for call in audit_log_service.log.await_args_list
+    ]
+
+    assert AuditAction.ANALYSIS_REQUESTED in audit_actions
+    assert AuditAction.ANALYSIS_STARTED in audit_actions
+    assert AuditAction.ANALYSIS_FAILED in audit_actions
+
+    for call in audit_log_service.log.await_args_list:
+        if call.kwargs["action"] == AuditAction.ANALYSIS_FAILED:
+            assert call.kwargs["resource_type"] == AuditResourceType.ANALYSIS
+            assert call.kwargs["resource_id"] == analysis_id
+            assert call.kwargs["actor_user_id"] == user.id
+
 
 @pytest.mark.asyncio
 async def test_create_analysis_storage_failure_rolls_back(
@@ -391,6 +453,7 @@ async def test_create_analysis_storage_failure_rolls_back(
     user,
     upload_id,
     upload,
+    audit_log_service,
 ):
     service._upload_repository.get_by_id_and_user.return_value = upload
     service._analysis_repository.get_by_upload_id.return_value = None
@@ -407,6 +470,15 @@ async def test_create_analysis_storage_failure_rolls_back(
 
     service._session.rollback.assert_awaited_once()
 
+    audit_actions = [
+        call.kwargs["action"]
+        for call in audit_log_service.log.await_args_list
+    ]
+
+    assert AuditAction.ANALYSIS_REQUESTED in audit_actions
+    assert AuditAction.ANALYSIS_STARTED in audit_actions
+    assert AuditAction.ANALYSIS_FAILED in audit_actions
+
 
 @pytest.mark.asyncio
 async def test_create_analysis_marks_analysis_failed_on_error(
@@ -414,6 +486,7 @@ async def test_create_analysis_marks_analysis_failed_on_error(
     user,
     upload_id,
     upload,
+    audit_log_service,
 ):
     service._upload_repository.get_by_id_and_user.return_value = upload
     service._analysis_repository.get_by_upload_id.return_value = None
@@ -434,3 +507,102 @@ async def test_create_analysis_marks_analysis_failed_on_error(
 
     assert saved_analysis.status == AnalysisStatus.FAILED
     assert saved_analysis.completed_at is not None
+
+    failed_audit_calls = [
+        call
+        for call in audit_log_service.log.await_args_list
+        if call.kwargs["action"] == AuditAction.ANALYSIS_FAILED
+    ]
+
+    assert len(failed_audit_calls) == 1
+    assert failed_audit_calls[0].kwargs["resource_type"] == (
+        AuditResourceType.ANALYSIS
+    )
+    assert failed_audit_calls[0].kwargs["resource_id"] == saved_analysis.id
+    assert failed_audit_calls[0].kwargs["actor_user_id"] == user.id
+
+
+@pytest.mark.asyncio
+async def test_get_analysis_returns_analysis_for_owner(
+    service,
+    user,
+    audit_log_service,
+):
+    analysis_id = uuid4()
+
+    analysis = Mock(spec=Analysis)
+    analysis.id = analysis_id
+    analysis.upload = Mock()
+    analysis.upload.user_id = user.id
+
+    service._analysis_repository.get_by_id.return_value = analysis
+
+    result = await service.get_analysis(
+        user=user,
+        analysis_id=analysis_id,
+    )
+
+    assert result is analysis
+
+    service._analysis_repository.get_by_id.assert_awaited_once_with(
+        analysis_id
+    )
+
+    audit_log_service.log.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_get_analysis_raises_when_analysis_not_found(
+    service,
+    user,
+    audit_log_service,
+):
+    analysis_id = uuid4()
+
+    service._analysis_repository.get_by_id.return_value = None
+
+    with pytest.raises(AnalysisNotFoundError):
+        await service.get_analysis(
+            user=user,
+            analysis_id=analysis_id,
+        )
+
+    service._analysis_repository.get_by_id.assert_awaited_once_with(
+        analysis_id
+    )
+
+    audit_log_service.log.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_get_analysis_denies_access_to_other_users_analysis(
+    service,
+    user,
+    audit_log_service,
+):
+    analysis_id = uuid4()
+    other_user_id = uuid4()
+
+    analysis = Mock(spec=Analysis)
+    analysis.id = analysis_id
+    analysis.upload = Mock()
+    analysis.upload.user_id = other_user_id
+
+    service._analysis_repository.get_by_id.return_value = analysis
+
+    with pytest.raises(AnalysisNotFoundError):
+        await service.get_analysis(
+            user=user,
+            analysis_id=analysis_id,
+        )
+
+    service._analysis_repository.get_by_id.assert_awaited_once_with(
+        analysis_id
+    )
+
+    audit_log_service.log.assert_awaited_once_with(
+        action=AuditAction.ACCESS_DENIED,
+        resource_type=AuditResourceType.ANALYSIS,
+        resource_id=analysis_id,
+        actor_user_id=user.id,
+    )
