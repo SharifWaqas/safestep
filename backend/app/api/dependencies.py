@@ -15,6 +15,7 @@ from backend.app.services.upload_service import UploadService
 from backend.app.services.storage_service import StorageService
 from backend.app.services.analysis_service import AnalysisService
 from backend.app.services.risk_scoring_service import RiskScoringService
+from backend.app.services.audit_log_service import AuditLogService
 
 from backend.app.services.exceptions import (
     InvalidTokenTypeError,
@@ -27,6 +28,7 @@ from backend.app.repositories.upload_repository import UploadRepository
 from backend.app.repositories.analysis_repository import AnalysisRepository
 from backend.app.repositories.ai_result_repository import AIResultRepository
 from backend.app.repositories.risk_score_repository import RiskScoreRepository
+from backend.app.repositories.audit_log_repository import AuditLogRepository
 
 from backend.app.ai.prompts import PromptBuilder
 from backend.app.ai.orchestrator import AIOrchestrator
@@ -70,14 +72,20 @@ async def get_auth_service(
 
     user_repository = UserRepository(session)
 
-    return AuthService(
-        session,
-        user_repository,
-        password_service,
-        jwt_service,
-        token_service,
+    audit_log_repository = AuditLogRepository(session)
+
+    audit_log_service = AuditLogService(
+        audit_log_repository=audit_log_repository,
     )
 
+    return AuthService(
+        session=session,
+        user_repository=user_repository,
+        password_service=password_service,
+        jwt_service=jwt_service,
+        token_service=token_service,
+        audit_log_service=audit_log_service,
+    )
 
 async def get_upload_service(
     session: Annotated[AsyncSession, Depends(get_db)],

@@ -27,6 +27,12 @@ def jwt_service():
     return MagicMock()
 
 @pytest.fixture
+def audit_log_service():
+    audit_log_service = MagicMock()
+    audit_log_service.log = AsyncMock()
+    return audit_log_service
+
+@pytest.fixture
 def user():
     return User(
         email="test@example.com",
@@ -54,6 +60,7 @@ def auth_service(
     password_service,
     jwt_service,
     token_service,
+    audit_log_service,
 ):
     return AuthService(
         session=db_session,
@@ -61,4 +68,5 @@ def auth_service(
         password_service=password_service,
         jwt_service=jwt_service,
         token_service=token_service,
+        audit_log_service=audit_log_service,
     )

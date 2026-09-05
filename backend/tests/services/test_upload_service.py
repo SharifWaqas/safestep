@@ -2,9 +2,12 @@ from datetime import UTC, datetime
 from io import BytesIO
 from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
+
 import pytest
 from fastapi import UploadFile
 
+from backend.app.enums.audit_action import AuditAction
+from backend.app.enums.audit_resource_type import AuditResourceType
 from backend.app.models.upload import Upload
 from backend.app.models.user import User
 from backend.app.schemas.upload import StorageResult
@@ -17,11 +20,19 @@ from backend.app.services.upload_service import UploadService
 
 
 @pytest.fixture
+def audit_log_service():
+    service = MagicMock()
+    service.log = AsyncMock()
+    return service
+
+
+@pytest.fixture
 def db_session():
     session = MagicMock()
     session.commit = AsyncMock()
     session.rollback = AsyncMock()
     session.refresh = AsyncMock()
+    session.flush = AsyncMock()
     return session
 
 
@@ -49,11 +60,13 @@ def upload_service(
     db_session,
     upload_repository,
     storage_service,
+    audit_log_service,
 ):
     return UploadService(
         session=db_session,
         upload_repository=upload_repository,
         storage_service=storage_service,
+        audit_log_service=audit_log_service,
     )
 
 
@@ -89,6 +102,7 @@ async def test_upload_file_creates_upload_and_commits(
     db_session,
     upload_repository,
     storage_service,
+    audit_log_service,
     user,
 ):
     file = create_upload_file()
@@ -101,6 +115,11 @@ async def test_upload_file_creates_upload_and_commits(
     )
 
     storage_service.save_file.return_value = storage_result
+
+    async def save_upload(upload):
+        upload.id = uuid4()
+
+    upload_repository.save.side_effect = save_upload
 
     await upload_service.upload_file(
         user=user,
@@ -120,6 +139,14 @@ async def test_upload_file_creates_upload_and_commits(
     assert saved_upload.file_size == storage_result.file_size
     assert saved_upload.content_type == storage_result.content_type
 
+    audit_log_service.log.assert_awaited_once_with(
+        action=AuditAction.UPLOAD_CREATED,
+        resource_type=AuditResourceType.UPLOAD,
+        resource_id=saved_upload.id,
+        actor_user_id=user.id,
+    )
+
+    db_session.flush.assert_awaited_once()
     db_session.commit.assert_awaited_once()
     db_session.refresh.assert_awaited_once_with(saved_upload)
 
@@ -301,6 +328,7 @@ async def test_delete_upload_deletes_upload_and_storage(
     db_session,
     upload_repository,
     storage_service,
+    audit_log_service,
     user,
 ):
     upload_id = uuid4()
@@ -323,6 +351,13 @@ async def test_delete_upload_deletes_upload_and_storage(
 
     upload_repository.delete.assert_awaited_once_with(upload)
 
+    audit_log_service.log.assert_awaited_once_with(
+        action=AuditAction.UPLOAD_DELETED,
+        resource_type=AuditResourceType.UPLOAD,
+        resource_id=upload_id,
+        actor_user_id=user.id,
+    )
+
     db_session.commit.assert_awaited_once()
 
     storage_service.delete_file.assert_awaited_once_with(
@@ -338,6 +373,7 @@ async def test_delete_upload_raises_when_upload_not_found(
     upload_service,
     upload_repository,
     db_session,
+    audit_log_service,
     user,
 ):
     upload_id = uuid4()
@@ -351,6 +387,7 @@ async def test_delete_upload_raises_when_upload_not_found(
         )
 
     upload_repository.delete.assert_not_awaited()
+    audit_log_service.log.assert_not_awaited()
     db_session.commit.assert_not_awaited()
 
 
@@ -415,47 +452,3 @@ async def test_list_uploads_returns_empty_list_when_no_uploads(
     )
 
     assert result == []
-
-@pytest.mark.asyncio
-async def test_upload_file_creates_upload_and_commits(
-    upload_service,
-    db_session,
-    upload_repository,
-    storage_service,
-    user,
-):
-    file = create_upload_file()
-
-    storage_result = StorageResult(
-        storage_path="uploads/test-id.jpg",
-        file_name="test-id.jpg",
-        file_size=15,
-        content_type="image/jpeg",
-    )
-
-    storage_service.save_file.return_value = storage_result
-
-    async def refresh_upload(upload):
-        upload.id = uuid4()
-
-    db_session.refresh.side_effect = refresh_upload
-
-    await upload_service.upload_file(
-        user=user,
-        file=file,
-    )
-
-    upload_repository.save.assert_awaited_once()
-
-    saved_upload = upload_repository.save.await_args.args[0]
-
-    assert saved_upload.user_id == user.id
-    assert saved_upload.storage_path == storage_result.storage_path
-    assert saved_upload.file_name == storage_result.file_name
-    assert saved_upload.file_size == storage_result.file_size
-    assert saved_upload.content_type == storage_result.content_type
-
-    db_session.commit.assert_awaited_once()
-    db_session.refresh.assert_awaited_once_with(saved_upload)
-
-
