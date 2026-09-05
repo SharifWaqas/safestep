@@ -1,4 +1,3 @@
-from pathlib import Path
 from typing import Annotated
 
 from fastapi import Depends
@@ -52,10 +51,6 @@ async def get_db():
 bearer_scheme = HTTPBearer()
 
 
-def get_upload_directory() -> Path:
-    return Path(settings.UPLOAD_DIRECTORY)
-
-
 async def get_auth_service(
     session: Annotated[AsyncSession, Depends(get_db)],
 ) -> AuthService:
@@ -90,16 +85,15 @@ async def get_auth_service(
 
 async def get_upload_service(
     session: Annotated[AsyncSession, Depends(get_db)],
-    upload_directory: Annotated[
-        Path,
-        Depends(get_upload_directory),
-    ],
 ) -> UploadService:
 
     upload_repository = UploadRepository(session)
 
     storage_service = StorageService(
-        upload_directory,
+        account_id=settings.R2_ACCOUNT_ID,
+        access_key_id=settings.R2_ACCESS_KEY_ID,
+        secret_access_key=settings.R2_SECRET_ACCESS_KEY,
+        bucket_name=settings.R2_BUCKET_NAME,
     )
 
     audit_log_repository = AuditLogRepository(session)
@@ -114,7 +108,6 @@ async def get_upload_service(
         storage_service=storage_service,
         audit_log_service=audit_log_service,
     )
-
 
 async def get_current_user(
     credentials: Annotated[
@@ -163,9 +156,11 @@ async def get_analysis_service(
     risk_scoring_service = RiskScoringService()
 
     storage_service = StorageService(
-        upload_directory=Path(settings.UPLOAD_DIRECTORY)
+        account_id=settings.R2_ACCOUNT_ID,
+        access_key_id=settings.R2_ACCESS_KEY_ID,
+        secret_access_key=settings.R2_SECRET_ACCESS_KEY,
+        bucket_name=settings.R2_BUCKET_NAME,
     )
-
     prompt_builder = PromptBuilder()
 
     nvidia_client = NVIDIAClient(

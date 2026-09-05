@@ -1,5 +1,6 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+
 class Settings(BaseSettings):
 
     model_config = SettingsConfigDict(
@@ -17,14 +18,19 @@ class Settings(BaseSettings):
     JWT_ALGORITHM: str
     ACCESS_TOKEN_EXPIRE_MINUTES: int
     REFRESH_TOKEN_EXPIRE_DAYS: int
-    UPLOAD_DIRECTORY: str
+
     MAX_UPLOAD_SIZE: int
 
-
+    R2_ACCOUNT_ID: str
+    R2_ACCESS_KEY_ID: str
+    R2_SECRET_ACCESS_KEY: str
+    R2_BUCKET_NAME: str
 
     NVIDIA_API_KEY: str
     NVIDIA_MODEL: str
 
     OPENAI_API_KEY: str
     OPENAI_MODEL: str
+
+
 settings = Settings()
