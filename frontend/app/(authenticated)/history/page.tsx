@@ -5,11 +5,8 @@ import Link from 'next/link'
 import { History, ShieldCheck } from 'lucide-react'
 
 import { AnalysisHistoryCard } from '@/components/history/analysis-history-card'
-import {
-  CardListSkeleton,
-} from '@/components/common/loading-state'
+import { CardListSkeleton } from '@/components/common/loading-state'
 import { ErrorState } from '@/components/common/error-state'
-import { Button } from '@/components/ui/button'
 import {
   Empty,
   EmptyContent,
@@ -105,11 +102,12 @@ export default function HistoryPage() {
           </EmptyHeader>
 
           <EmptyContent>
-            <Button
-              size="lg"
-              className="h-12 px-6 text-base"
-              render={<Link href="/analyze">Analyze a message</Link>}
-            />
+            <Link
+              href="/analyze"
+              className="inline-flex h-12 items-center justify-center rounded-lg bg-primary px-6 text-base font-medium text-primary-foreground transition-all hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+            >
+              Analyze a message
+            </Link>
           </EmptyContent>
         </Empty>
       )}

@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 
+import { AnalysisLoader } from '@/components/analysis/analysis-loader'
 import { UploadDropzone } from '@/components/upload/upload-dropzone'
 import { ImagePreview } from '@/components/upload/image-preview'
 import { uploadsApi } from '@/lib/api/uploads'
@@ -76,6 +77,8 @@ export default function AnalyzePage() {
        * Step 2:
        * Start the analysis using the upload ID.
        *
+       * The backend performs the analysis before returning.
+       *
        * POST /analyses/{upload_id}
        */
       const analysis = await analysesApi.create(upload.upload_id)
@@ -83,8 +86,6 @@ export default function AnalyzePage() {
       /*
        * Step 3:
        * Navigate to the analysis result page.
-       *
-       * We will build this page next.
        */
       router.push(`/analysis/${analysis.analysis_id}`)
     } catch (err) {
@@ -111,41 +112,44 @@ export default function AnalyzePage() {
         </p>
       </div>
 
-      <div className="rounded-2xl border bg-card p-6">
-        {!file ? (
-          <UploadDropzone
-            onFileSelected={handleFileSelected}
-            onError={handleUploadError}
-          />
-        ) : (
-          <div className="space-y-6">
-            <ImagePreview
-              file={file}
-              previewUrl={previewUrl}
-              onRemove={handleRemove}
-              onReplace={handleReplace}
+      {isUploading ? (
+        <AnalysisLoader />
+      ) : (
+        <div className="rounded-2xl border bg-card p-6">
+          {!file ? (
+            <UploadDropzone
+              onFileSelected={handleFileSelected}
+              onError={handleUploadError}
             />
+          ) : (
+            <div className="space-y-6">
+              <ImagePreview
+                file={file}
+                previewUrl={previewUrl}
+                onRemove={handleRemove}
+                onReplace={handleReplace}
+              />
 
-            <button
-              type="button"
-              onClick={handleAnalyze}
-              disabled={isUploading}
-              className="w-full rounded-lg bg-primary px-5 py-3 font-medium text-primary-foreground transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+              <button
+                type="button"
+                onClick={handleAnalyze}
+                className="w-full rounded-lg bg-primary px-5 py-3 font-medium text-primary-foreground transition hover:opacity-90"
+              >
+                Analyze message
+              </button>
+            </div>
+          )}
+
+          {error && (
+            <div
+              role="alert"
+              className="mt-6 rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive"
             >
-              {isUploading ? 'Analyzing...' : 'Analyze message'}
-            </button>
-          </div>
-        )}
-
-        {error && (
-          <div
-            role="alert"
-            className="mt-6 rounded-lg border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive"
-          >
-            {error}
-          </div>
-        )}
-      </div>
+              {error}
+            </div>
+          )}
+        </div>
+      )}
     </main>
   )
 }
