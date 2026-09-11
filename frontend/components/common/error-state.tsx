@@ -36,12 +36,15 @@ export function ErrorState({
       >
         <Icon className="size-7" />
       </span>
+
       <h2 className="mt-5 text-2xl font-bold tracking-tight text-balance">
         {title}
       </h2>
+
       <p className="mt-2 text-pretty text-lg text-muted-foreground">
         {description}
       </p>
+
       <div className="mt-6 flex flex-wrap justify-center gap-3">
         {onRetry && (
           <Button
@@ -52,13 +55,14 @@ export function ErrorState({
             {retryLabel}
           </Button>
         )}
+
         {secondaryHref && secondaryLabel && (
-          <Button
-            variant="outline"
-            size="lg"
-            className="h-12 px-6 text-base"
-            render={<Link href={secondaryHref}>{secondaryLabel}</Link>}
-          />
+          <Link
+            href={secondaryHref}
+            className="inline-flex h-9 items-center justify-center rounded-lg border border-border bg-background px-3 text-sm font-medium whitespace-nowrap transition-all hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50 sm:h-10 sm:px-4"
+          >
+            {secondaryLabel}
+          </Link>
         )}
       </div>
     </div>

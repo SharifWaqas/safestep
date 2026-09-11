@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import desc, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -71,3 +71,29 @@ class AnalysisRepository(BaseRepository[Analysis]):
         result = await self._db_session.execute(query)
 
         return result.scalar_one_or_none()
+
+    async def get_by_user_id(
+        self,
+        user_id: UUID,
+    ) -> list[Analysis]:
+        query = (
+            select(self._model)
+            .options(
+                selectinload(self._model.ai_result),
+                selectinload(self._model.risk_scores),
+            )
+            .join(
+                Upload,
+                self._model.upload_id == Upload.id,
+            )
+            .where(
+                Upload.user_id == user_id,
+            )
+            .order_by(
+                desc(self._model.started_at),
+            )
+        )
+
+        result = await self._db_session.execute(query)
+
+        return list(result.scalars().all())

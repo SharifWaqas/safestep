@@ -218,3 +218,11 @@ class AnalysisService:
             raise AnalysisNotFoundError()
 
         return analysis
+
+    async def list_analyses(
+        self,
+        user: User,
+    ) -> list[Analysis]:
+        return await self._analysis_repository.get_by_user_id(
+            user.id,
+        )

@@ -64,3 +64,22 @@ async def get_analysis(
         user=user,
         analysis_id=analysis_id,
     )
+
+
+@router.get(
+    "",
+    response_model=list[AnalysisResponse],
+)
+async def list_analyses(
+    user: Annotated[
+        User,
+        Depends(get_current_user),
+    ],
+    analysis_service: Annotated[
+        AnalysisService,
+        Depends(get_analysis_service),
+    ],
+):
+    return await analysis_service.list_analyses(
+        user=user,
+    )
