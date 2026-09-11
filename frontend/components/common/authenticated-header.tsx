@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { History, LogOut } from 'lucide-react'
+import { History, LogOut, Settings } from 'lucide-react'
 
 import { useAuth } from '@/components/auth/auth-provider'
 import { Logo } from '@/components/brand/logo'
@@ -34,6 +34,17 @@ export function AuthenticatedHeader() {
               aria-hidden="true"
             />
             History
+          </Link>
+
+          <Link
+            href="/settings"
+            className="inline-flex h-9 items-center justify-center gap-1.5 rounded-lg px-3 text-sm font-medium transition-all hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50 sm:h-10"
+          >
+            <Settings
+              className="size-4"
+              aria-hidden="true"
+            />
+            Settings
           </Link>
 
           <button
