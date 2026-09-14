@@ -4,7 +4,11 @@ import { mockApi } from './mock'
 import type {
   AuthTokens,
   LoginPayload,
+  LoginResponse,
   RegisterPayload,
+  RegisterResponse,
+  User,
+  AuthResponse
 } from './types'
 
 const ENDPOINTS = {
@@ -21,11 +25,21 @@ function storeTokens(tokens: AuthTokens): void {
   )
 }
 
+function mapUser(user: LoginResponse['user']): User {
+  return {
+    id: user.id,
+    email: user.email,
+    name: user.full_name,
+  }
+}
+
 export const authApi = {
-  async login(payload: LoginPayload): Promise<AuthTokens> {
-    const tokens: AuthTokens = USE_MOCKS
+  async login(
+    payload: LoginPayload,
+  ): Promise<AuthResponse> {
+    const response: LoginResponse = USE_MOCKS
       ? await mockApi.login(payload)
-      : await apiClient.post<AuthTokens>(
+      : await apiClient.post<LoginResponse>(
           ENDPOINTS.login,
           JSON.stringify(payload),
           {
@@ -34,17 +48,20 @@ export const authApi = {
           },
         )
 
-    storeTokens(tokens)
+    storeTokens(response)
 
-    return tokens
+    return {
+      ...response,
+      user: mapUser(response.user),
+    }
   },
 
   async register(
     payload: RegisterPayload,
-  ): Promise<AuthTokens> {
-    const tokens: AuthTokens = USE_MOCKS
+  ): Promise<AuthResponse> {
+    const response: RegisterResponse = USE_MOCKS
       ? await mockApi.register(payload)
-      : await apiClient.post<AuthTokens>(
+      : await apiClient.post<RegisterResponse>(
           ENDPOINTS.register,
           JSON.stringify(payload),
           {
@@ -53,9 +70,12 @@ export const authApi = {
           },
         )
 
-    storeTokens(tokens)
+    storeTokens(response)
 
-    return tokens
+    return {
+      ...response,
+      user: mapUser(response.user),
+    }
   },
 
   async refresh(
@@ -77,21 +97,29 @@ export const authApi = {
     return tokens
   },
 
-  async logout(refreshToken: string): Promise<void> {
+  async logout(): Promise<void> {
+    const refreshToken = tokenStore.getRefreshToken()
+
     try {
-      await apiClient.post(
-        ENDPOINTS.logout,
-        JSON.stringify({
-          refresh_token: refreshToken,
-        }),
-        {
-          headers: jsonHeaders(),
-          skipAuth: true,
-        },
-      )
+      if (refreshToken) {
+        await apiClient.post(
+          ENDPOINTS.logout,
+          JSON.stringify({
+            refresh_token: refreshToken,
+          }),
+          {
+            headers: jsonHeaders(),
+            skipAuth: true,
+          },
+        )
+      }
     } finally {
       tokenStore.clear()
     }
+  },
+
+  getAccessToken(): string | null {
+    return tokenStore.getAccessToken()
   },
 
   hasSession(): boolean {

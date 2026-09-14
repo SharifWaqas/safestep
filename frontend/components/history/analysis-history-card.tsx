@@ -1,5 +1,9 @@
 import Link from 'next/link'
-import { ArrowRight, Clock } from 'lucide-react'
+import {
+  ArrowRight,
+  Clock,
+  ShieldOff,
+} from 'lucide-react'
 
 import { RiskLevelBadge } from '@/components/risk/risk-level-badge'
 import type { Analysis } from '@/lib/api/types'
@@ -23,11 +27,20 @@ export function AnalysisHistoryCard({
   analysis,
 }: AnalysisHistoryCardProps) {
   const ai = analysis.ai_result
-  const meta = getRiskMeta(ai?.risk_level)
-  const Icon = RISK_LEVEL_ICON[meta.level]
+  const isCompleted = analysis.status === 'completed'
+  const meta = ai ? getRiskMeta(ai.risk_level) : null
+  const Icon = meta
+    ? RISK_LEVEL_ICON[meta.level]
+    : analysis.status === 'failed'
+      ? ShieldOff
+      : Clock
 
-  const summary =
-    ai?.summary ?? 'This analysis is still being prepared.'
+  const summary = ai?.summary ??
+    (analysis.status === 'failed'
+      ? "We couldn't finish this analysis."
+      : analysis.status === 'processing'
+        ? 'Your analysis is in progress.'
+        : 'Your analysis is waiting to start.')
 
   return (
     <li className="rounded-2xl border bg-card p-5 transition-colors hover:border-primary/40 sm:p-6">
@@ -35,13 +48,14 @@ export function AnalysisHistoryCard({
         <span
           className={cn(
             'flex size-12 shrink-0 items-center justify-center rounded-xl',
-            meta.token === 'safe' && 'bg-safe-subtle text-safe',
-            meta.token === 'low' && 'bg-low-subtle text-low',
-            meta.token === 'medium' &&
+            meta?.token === 'safe' && 'bg-safe-subtle text-safe',
+            meta?.token === 'low' && 'bg-low-subtle text-low',
+            meta?.token === 'medium' &&
               'bg-medium-subtle text-medium-foreground',
-            meta.token === 'high' && 'bg-high-subtle text-high',
-            meta.token === 'critical' &&
+            meta?.token === 'high' && 'bg-high-subtle text-high',
+            meta?.token === 'critical' &&
               'bg-critical-subtle text-critical',
+            !meta && 'bg-muted text-muted-foreground',
           )}
           aria-hidden="true"
         >
@@ -50,7 +64,7 @@ export function AnalysisHistoryCard({
 
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-            {ai && (
+            {isCompleted && ai && (
               <RiskLevelBadge
                 level={ai.risk_level}
                 size="sm"

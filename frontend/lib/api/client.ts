@@ -190,7 +190,7 @@ async function extractDetail(
 }
 
 /* ------------------------------------------------------------------ */
-/* Core request                                                        */
+/* Request configuration                                               */
 /* ------------------------------------------------------------------ */
 
 interface RequestOptions {
@@ -207,9 +207,93 @@ interface RequestOptions {
   signal?: AbortSignal
 }
 
+/* ------------------------------------------------------------------ */
+/* Refresh coordination                                                */
+/* ------------------------------------------------------------------ */
+
+/**
+ * A single shared refresh promise prevents concurrent requests from
+ * rotating the refresh token multiple times.
+ */
+let refreshPromise: Promise<boolean> | null = null
+
+const AUTH_ENDPOINTS = new Set([
+  '/auth/login',
+  '/auth/register',
+  '/auth/refresh',
+  '/auth/logout',
+])
+
+function isAuthEndpoint(path: string): boolean {
+  return AUTH_ENDPOINTS.has(path)
+}
+
+async function refreshAccessToken(): Promise<boolean> {
+  const refreshToken = tokenStore.getRefreshToken()
+
+  if (!refreshToken) {
+    return false
+  }
+
+  if (refreshPromise) {
+    return refreshPromise
+  }
+
+  refreshPromise = (async () => {
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/auth/refresh`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            refresh_token: refreshToken,
+          }),
+        },
+      )
+
+      if (!response.ok) {
+        return false
+      }
+
+      const tokens = (await response.json()) as {
+        access_token: string
+        refresh_token: string
+      }
+
+      if (
+        !tokens.access_token ||
+        !tokens.refresh_token
+      ) {
+        return false
+      }
+
+      tokenStore.setTokens(
+        tokens.access_token,
+        tokens.refresh_token,
+      )
+
+      return true
+    } catch {
+      return false
+    } finally {
+      refreshPromise = null
+    }
+  })()
+
+  return refreshPromise
+}
+
+/* ------------------------------------------------------------------ */
+/* Core request                                                        */
+/* ------------------------------------------------------------------ */
+
 async function request<T>(
   path: string,
   options: RequestOptions = {},
+  hasRetried = false,
 ): Promise<T> {
   const {
     method = 'GET',
@@ -283,11 +367,32 @@ async function request<T>(
   clearTimeout(timeoutId)
 
   if (!response.ok) {
-    const detail = await extractDetail(response)
+    /*
+     * Only authenticated application requests should attempt refresh.
+     * Auth endpoints must never recursively trigger the refresh flow.
+     */
+    if (
+      response.status === 401 &&
+      !skipAuth &&
+      !hasRetried &&
+      !isAuthEndpoint(path)
+    ) {
+      const refreshed = await refreshAccessToken()
 
-    if (response.status === 401) {
+      if (refreshed) {
+        return request<T>(
+          path,
+          options,
+          true,
+        )
+      }
+
+      onUnauthorized?.()
+    } else if (response.status === 401) {
       onUnauthorized?.()
     }
+
+    const detail = await extractDetail(response)
 
     throw new ApiError(
       messageForStatus(response.status, detail),
@@ -342,18 +447,15 @@ export const apiClient = {
     ),
 
   put: <T>(
-    path: string,
-    body?: BodyInit | null,
-    options?: RequestOptions,
-  ) =>
-    request<T>(
-      path,
-      {
-        ...options,
-        method: 'PUT',
-        body,
-      },
-    ),
+  path: string,
+  body?: BodyInit | null,
+  options?: RequestOptions,
+) =>
+  request<T>(path, {
+    ...options,
+    method: 'PUT',
+    body,
+  }),
 
   delete: <T>(
     path: string,

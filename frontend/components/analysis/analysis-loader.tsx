@@ -34,20 +34,24 @@ export function AnalysisLoader() {
       >
         <ShieldCheck className="size-8" />
       </span>
+
       <h2 className="mt-5 text-2xl font-bold tracking-tight">
         SafeStep is reviewing this message
       </h2>
+
       <p className="mt-2 text-pretty text-lg text-muted-foreground">
         This usually takes a few seconds. Please stay on this page.
       </p>
 
-      <ul
-        className="mt-8 flex w-full flex-col gap-3 text-left"
-        aria-live="polite"
-      >
+      <p className="sr-only" aria-live="polite">
+        {STEPS[active]} — in progress
+      </p>
+
+      <ul className="mt-8 flex w-full flex-col gap-3 text-left">
         {STEPS.map((step, i) => {
           const done = i < active
           const current = i === active
+
           return (
             <li
               key={step}
@@ -66,9 +70,13 @@ export function AnalysisLoader() {
                 ) : current ? (
                   <Spinner className="size-6 text-primary" />
                 ) : (
-                  <span className="size-3 rounded-full bg-foreground/20" />
+                  <span
+                    className="size-3 rounded-full bg-foreground/20"
+                    aria-hidden="true"
+                  />
                 )}
               </span>
+
               <span
                 className={cn(
                   'font-medium',

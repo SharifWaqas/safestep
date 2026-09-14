@@ -74,6 +74,20 @@ export interface AuthTokens {
   expires_in: number
 }
 
+export interface AuthenticatedUser {
+  id: string
+  email: string
+  full_name: string
+}
+
+export interface LoginResponse extends AuthTokens {
+  user: AuthenticatedUser
+}
+
+export interface RegisterResponse extends AuthTokens {
+  user: AuthenticatedUser
+}
+
 export interface LoginPayload {
   email: string
   password: string
@@ -83,4 +97,8 @@ export interface RegisterPayload {
   full_name: string
   email: string
   password: string
+}
+
+export interface AuthResponse extends AuthTokens {
+  user: User
 }

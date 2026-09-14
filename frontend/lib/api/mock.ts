@@ -8,7 +8,8 @@
 
 import type {
   Analysis,
-  AuthTokens,
+  LoginResponse,
+  RegisterResponse,
   LoginPayload,
   RegisterPayload,
   Upload,
@@ -126,7 +127,9 @@ const sampleAnalyses: Analysis[] = [
 let store: Analysis[] = [...sampleAnalyses]
 
 export const mockApi = {
-  async login(payload: LoginPayload): Promise<AuthTokens> {
+  async login(
+    payload: LoginPayload,
+  ): Promise<LoginResponse> {
     await mockDelay()
 
     if (!payload.email || !payload.password) {
@@ -138,10 +141,17 @@ export const mockApi = {
       refresh_token: 'mock-refresh-token',
       token_type: 'Bearer',
       expires_in: 3600,
+      user: {
+        id: 'mock-user-1',
+        email: payload.email,
+        full_name: 'Mock User',
+      },
     }
   },
 
-  async register(_payload: RegisterPayload): Promise<AuthTokens> {
+  async register(
+    payload: RegisterPayload,
+  ): Promise<RegisterResponse> {
     await mockDelay()
 
     return {
@@ -149,6 +159,11 @@ export const mockApi = {
       refresh_token: 'mock-refresh-token',
       token_type: 'Bearer',
       expires_in: 3600,
+      user: {
+        id: 'mock-user-1',
+        email: payload.email,
+        full_name: payload.full_name,
+      },
     }
   },
 

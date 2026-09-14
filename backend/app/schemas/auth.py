@@ -1,4 +1,5 @@
 from typing import Literal
+
 from pydantic import BaseModel, EmailStr, Field
 
 
@@ -7,11 +8,18 @@ class LoginRequest(BaseModel):
     password: str = Field(min_length=8)
 
 
+class AuthenticatedUserResponse(BaseModel):
+    id: str
+    email: EmailStr
+    full_name: str
+
+
 class LoginResponse(BaseModel):
     access_token: str
     refresh_token: str
     token_type: Literal["Bearer"] = "Bearer"
     expires_in: int
+    user: AuthenticatedUserResponse
 
 
 class RefreshRequest(BaseModel):
@@ -38,9 +46,10 @@ class RegisterRequest(BaseModel):
     email: EmailStr
     password: str
 
+
 class RegisterResponse(BaseModel):
     access_token: str
     refresh_token: str
     token_type: Literal["Bearer"] = "Bearer"
     expires_in: int
-
+    user: AuthenticatedUserResponse

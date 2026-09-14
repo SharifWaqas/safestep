@@ -12,15 +12,15 @@ export default function AuthenticatedLayout({
   children: React.ReactNode
 }) {
   const router = useRouter()
-  const { isAuthenticated, isLoading } = useAuth()
+  const { hasToken, tokenChecked } = useAuth()
 
   useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
+    if (tokenChecked && !hasToken) {
       router.replace('/login')
     }
-  }, [isAuthenticated, isLoading, router])
+  }, [hasToken, tokenChecked, router])
 
-  if (isLoading || !isAuthenticated) {
+  if (!tokenChecked || !hasToken) {
     return (
       <main className="flex min-h-dvh items-center justify-center px-4">
         <p className="text-muted-foreground">

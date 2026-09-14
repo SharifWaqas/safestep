@@ -9,44 +9,62 @@ import {
   useState,
 } from 'react'
 import { useRouter } from 'next/navigation'
+
 import { authApi } from '@/lib/api/auth'
 import { setUnauthorizedHandler, tokenStore } from '@/lib/api/client'
-import type {
-  LoginPayload,
-  RegisterPayload,
-  User,
-} from '@/lib/api/types'
+import type { LoginPayload, RegisterPayload, User } from '@/lib/api/types'
 
 interface AuthContextValue {
   user: User | null
-  isLoading: boolean
-  isAuthenticated: boolean
+  hasToken: boolean
+  tokenChecked: boolean
   login: (payload: LoginPayload) => Promise<void>
   register: (payload: RegisterPayload) => Promise<void>
-  logout: () => void
+  logout: () => Promise<void>
 }
 
-const AuthContext = createContext<AuthContextValue | null>(null)
+export const AuthContext = createContext<AuthContextValue | undefined>(undefined)
 
-export function AuthProvider({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+const USER_STORAGE_KEY = 'safestep.user'
+
+export function useAuth() {
+  const context = useContext(AuthContext)
+
+  if (!context) {
+    throw new Error('useAuth must be used within an AuthProvider')
+  }
+
+  return context
+}
+
+export function AuthProvider({ children }: { children: React.ReactNode }) {
   const router = useRouter()
 
+  const [user, setUser] = useState<User | null>(null)
   const [hasToken, setHasToken] = useState(false)
   const [tokenChecked, setTokenChecked] = useState(false)
 
   useEffect(() => {
-    const accessToken = tokenStore.getAccessToken()
+    const token = authApi.getAccessToken()
+    const storedUser = localStorage.getItem(USER_STORAGE_KEY)
 
-    setHasToken(Boolean(accessToken))
+    setHasToken(Boolean(token))
+
+    if (storedUser) {
+      try {
+        setUser(JSON.parse(storedUser) as User)
+      } catch {
+        localStorage.removeItem(USER_STORAGE_KEY)
+      }
+    }
+
     setTokenChecked(true)
   }, [])
 
   const clearSession = useCallback(() => {
     tokenStore.clear()
+    localStorage.removeItem(USER_STORAGE_KEY)
+    setUser(null)
     setHasToken(false)
   }, [])
 
@@ -61,73 +79,47 @@ export function AuthProvider({
     }
   }, [clearSession, router])
 
-  const login = useCallback(
-    async (payload: LoginPayload) => {
-      await authApi.login(payload)
-      setHasToken(true)
-    },
-    [],
-  )
+  const login = useCallback(async (payload: LoginPayload) => {
+    const response = await authApi.login(payload)
 
-  const register = useCallback(
-    async (payload: RegisterPayload) => {
-      await authApi.register(payload)
-      setHasToken(true)
-    },
-    [],
-  )
+    setUser(response.user)
+    localStorage.setItem(
+      USER_STORAGE_KEY,
+      JSON.stringify(response.user),
+    )
+    setHasToken(true)
+  }, [])
 
-  const logout = useCallback(() => {
-    const refreshToken = tokenStore.getRefreshToken()
+  const register = useCallback(async (payload: RegisterPayload) => {
+    const response = await authApi.register(payload)
 
-    if (refreshToken) {
-      void authApi.logout(refreshToken).catch(() => {
-        // The local session is still cleared below.
-      })
-    } else {
-      tokenStore.clear()
-    }
+    setUser(response.user)
+    localStorage.setItem(
+      USER_STORAGE_KEY,
+      JSON.stringify(response.user),
+    )
+    setHasToken(true)
+  }, [])
 
+  const logout = useCallback(async () => {
+    await authApi.logout()
+    localStorage.removeItem(USER_STORAGE_KEY)
+    setUser(null)
     setHasToken(false)
     router.push('/login')
   }, [router])
 
-  const value = useMemo<AuthContextValue>(
+  const value = useMemo(
     () => ({
-      user: null,
-
-      isLoading: !tokenChecked,
-
-      isAuthenticated: tokenChecked && hasToken,
-
+      user,
+      hasToken,
+      tokenChecked,
       login,
       register,
       logout,
     }),
-    [
-      tokenChecked,
-      hasToken,
-      login,
-      register,
-      logout,
-    ],
+    [user, hasToken, tokenChecked, login, register, logout],
   )
 
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  )
-}
-
-export function useAuth(): AuthContextValue {
-  const ctx = useContext(AuthContext)
-
-  if (!ctx) {
-    throw new Error(
-      'useAuth must be used within AuthProvider',
-    )
-  }
-
-  return ctx
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }

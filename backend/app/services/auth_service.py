@@ -120,6 +120,11 @@ class AuthService:
                 refresh_token=refresh_token,
                 token_type="Bearer",
                 expires_in=self._jwt_service.access_token_expires_in,
+                user={
+                    "id": str(new_user.id),
+                    "email": new_user.email,
+                    "full_name": new_user.full_name,
+                },
             )
 
         except Exception:
@@ -182,6 +187,11 @@ class AuthService:
                 refresh_token=refresh_token,
                 token_type="Bearer",
                 expires_in=self._jwt_service.access_token_expires_in,
+                user={
+                    "id": str(user.id),
+                    "email": user.email,
+                    "full_name": user.full_name,
+                },
             )
 
         except Exception:
