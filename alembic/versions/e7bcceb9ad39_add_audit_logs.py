@@ -48,8 +48,6 @@ def upgrade() -> None:
         name="audit_resource_type",
     )
 
-    audit_action.create(op.get_bind(), checkfirst=True)
-    audit_resource_type.create(op.get_bind(), checkfirst=True)
 
     op.create_table(
         "audit_logs",
