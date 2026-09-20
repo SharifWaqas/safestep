@@ -26,6 +26,12 @@ app.add_middleware(
 
 register_exception_handlers(app)
 
+
+@app.get("/health")
+async def health_check() -> dict[str, str]:
+    return {"status": "ok"}
+
+
 app.include_router(auth_router)
 app.include_router(upload_router)
 app.include_router(analysis_router)
