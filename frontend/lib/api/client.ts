@@ -83,6 +83,7 @@ export function setUnauthorizedHandler(
 function messageForStatus(
   status: number,
   backendDetail?: string,
+  path?: string,
 ): string {
   switch (status) {
     case 400:
@@ -92,6 +93,20 @@ function messageForStatus(
       )
 
     case 401:
+      if (path === '/auth/login') {
+        return (
+          backendDetail ??
+          'Invalid email or password. Please check your credentials and try again.'
+        )
+      }
+
+      if (path === '/auth/register') {
+        return (
+          backendDetail ??
+          'We could not create your account with those details. Please try again.'
+        )
+      }
+
       return 'Your session has expired. Please log in again.'
 
     case 403:
@@ -388,14 +403,18 @@ async function request<T>(
       }
 
       onUnauthorized?.()
-    } else if (response.status === 401) {
+    } else if (
+      response.status === 401 &&
+      !skipAuth &&
+      !isAuthEndpoint(path)
+    ) {
       onUnauthorized?.()
     }
 
     const detail = await extractDetail(response)
 
     throw new ApiError(
-      messageForStatus(response.status, detail),
+      messageForStatus(response.status, detail, path),
       response.status,
       codeForStatus(response.status),
     )
@@ -447,15 +466,15 @@ export const apiClient = {
     ),
 
   put: <T>(
-  path: string,
-  body?: BodyInit | null,
-  options?: RequestOptions,
-) =>
-  request<T>(path, {
-    ...options,
-    method: 'PUT',
-    body,
-  }),
+    path: string,
+    body?: BodyInit | null,
+    options?: RequestOptions,
+  ) =>
+    request<T>(path, {
+      ...options,
+      method: 'PUT',
+      body,
+    }),
 
   delete: <T>(
     path: string,

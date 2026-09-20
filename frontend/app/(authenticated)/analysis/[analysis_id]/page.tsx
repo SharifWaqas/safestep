@@ -43,8 +43,11 @@ export default function AnalysisPage() {
   if (isLoading) {
     return (
       <main className="mx-auto flex min-h-dvh w-full max-w-4xl items-center justify-center px-4 py-10">
-        <div className="text-center">
-          <div className="mx-auto mb-4 size-10 animate-spin rounded-full border-4 border-muted border-t-primary" />
+        <div className="text-center" role="status" aria-live="polite">
+          <div
+            className="mx-auto mb-4 size-10 animate-spin rounded-full border-4 border-muted border-t-primary"
+            aria-hidden="true"
+          />
 
           <h1 className="text-2xl font-bold">
             Analyzing your message...
@@ -61,7 +64,10 @@ export default function AnalysisPage() {
   if (error || !analysis) {
     return (
       <main className="mx-auto flex min-h-dvh w-full max-w-2xl items-center justify-center px-4 py-10">
-        <div className="w-full rounded-2xl border bg-card p-8 text-center">
+        <div
+          role="alert"
+          className="w-full rounded-2xl border bg-card p-8 text-center"
+        >
           <h1 className="text-2xl font-bold">
             We couldn't load the analysis
           </h1>
@@ -155,42 +161,53 @@ export default function AnalysisPage() {
               </h2>
 
               <div className="mt-5 space-y-4">
-                {analysis.risk_scores.map((risk) => (
-                  <div
-                    key={risk.risk_factor}
-                    className="rounded-xl border p-4"
-                  >
-                    <div className="flex items-center justify-between gap-4">
-                      <p className="font-semibold">
-                        {risk.risk_factor
-                          .replaceAll('_', ' ')
-                          .replace(/\b\w/g, (letter) =>
-                            letter.toUpperCase(),
-                          )}
-                      </p>
+                {analysis.risk_scores.map((risk) => {
+                  const riskPercent = Math.round(risk.score * 100)
 
-                      <span className="text-sm font-medium text-muted-foreground">
-                        {Math.round(risk.score * 100)}%
-                      </span>
-                    </div>
+                  return (
+                    <div
+                      key={risk.risk_factor}
+                      className="rounded-xl border p-4"
+                    >
+                      <div className="flex items-center justify-between gap-4">
+                        <p className="font-semibold">
+                          {risk.risk_factor
+                            .replaceAll('_', ' ')
+                            .replace(/\b\w/g, (letter) =>
+                              letter.toUpperCase(),
+                            )}
+                        </p>
 
-                    <div className="mt-3 h-2 overflow-hidden rounded-full bg-muted">
+                        <span className="text-sm font-medium text-muted-foreground">
+                          {riskPercent}%
+                        </span>
+                      </div>
+
                       <div
-                        className="h-full rounded-full bg-primary"
-                        style={{
-                          width: `${Math.min(
-                            Math.max(risk.score * 100, 0),
-                            100,
-                          )}%`,
-                        }}
-                      />
-                    </div>
+                        className="mt-3 h-2 overflow-hidden rounded-full bg-muted"
+                        role="progressbar"
+                        aria-label={`${risk.risk_factor.replaceAll('_', ' ')} risk score`}
+                        aria-valuemin={0}
+                        aria-valuemax={100}
+                        aria-valuenow={riskPercent}
+                      >
+                        <div
+                          className="h-full rounded-full bg-primary"
+                          style={{
+                            width: `${Math.min(
+                              Math.max(risk.score * 100, 0),
+                              100,
+                            )}%`,
+                          }}
+                        />
+                      </div>
 
-                    <p className="mt-3 text-sm leading-6 text-muted-foreground">
-                      {risk.explanation}
-                    </p>
-                  </div>
-                ))}
+                      <p className="mt-3 text-sm leading-6 text-muted-foreground">
+                        {risk.explanation}
+                      </p>
+                    </div>
+                  )
+                })}
               </div>
             </section>
           )}

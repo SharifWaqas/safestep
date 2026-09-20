@@ -112,6 +112,12 @@ export default function LoginPage() {
               </div>
             )}
 
+            {isLoading && (
+              <p className="sr-only" role="status">
+                Logging in...
+              </p>
+            )}
+
             <button
               type="submit"
               disabled={isLoading}

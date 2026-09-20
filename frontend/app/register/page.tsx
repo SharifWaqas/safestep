@@ -8,7 +8,13 @@ import { ArrowLeft, ShieldCheck } from 'lucide-react'
 import { useAuth } from '@/components/auth/auth-provider'
 import { Logo } from '@/components/brand/logo'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { ApiError } from '@/lib/api/client'
@@ -82,10 +88,7 @@ export default function RegisterPage() {
           <Logo />
 
           <div className="mt-6 flex size-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-            <ShieldCheck
-              className="size-6"
-              aria-hidden="true"
-            />
+            <ShieldCheck className="size-6" aria-hidden="true" />
           </div>
         </div>
 
@@ -107,9 +110,7 @@ export default function RegisterPage() {
               className="flex flex-col gap-5"
             >
               <div className="flex flex-col gap-2">
-                <Label htmlFor="full-name">
-                  Full name
-                </Label>
+                <Label htmlFor="full-name">Full name</Label>
 
                 <Input
                   id="full-name"
@@ -127,9 +128,7 @@ export default function RegisterPage() {
               </div>
 
               <div className="flex flex-col gap-2">
-                <Label htmlFor="email">
-                  Email address
-                </Label>
+                <Label htmlFor="email">Email address</Label>
 
                 <Input
                   id="email"
@@ -147,9 +146,7 @@ export default function RegisterPage() {
               </div>
 
               <div className="flex flex-col gap-2">
-                <Label htmlFor="password">
-                  Password
-                </Label>
+                <Label htmlFor="password">Password</Label>
 
                 <Input
                   id="password"
@@ -178,6 +175,12 @@ export default function RegisterPage() {
                 >
                   {error}
                 </div>
+              )}
+
+              {isSubmitting && (
+                <p className="sr-only" role="status">
+                  Creating your account...
+                </p>
               )}
 
               <Button

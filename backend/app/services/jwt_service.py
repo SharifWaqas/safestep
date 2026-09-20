@@ -29,10 +29,13 @@ class JWTService:
     def verify_token(self, token: str) -> dict:
         try:
             return jwt.decode(
-                token, 
-                key=self._jwt_secret, 
-               algorithms=[self._jwt_algorithm,],
-                )
+                token,
+                key=self._jwt_secret,
+                algorithms=[self._jwt_algorithm],
+                options={
+                    "require": ["sub", "type", "iat", "exp"],
+                },
+            )
         except jwt.InvalidTokenError as e:
             raise TokenVerificationError() from e  
 
