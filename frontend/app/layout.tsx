@@ -20,10 +20,12 @@ const jakarta = Plus_Jakarta_Sans({
 })
 
 export const metadata: Metadata = {
-  title: 'SafeStep — Understand suspicious messages before you act',
+    title: "SafeStep | AI Scam & Message Safety Checker",
   description:
-    'SafeStep helps you understand suspicious messages, links, and screenshots before you take action. Upload a screenshot and get a calm, clear explanation.',
-  generator: 'v0.app',
+    "SafeStep uses AI to help you understand suspicious messages, emails, links, and screenshots before you click, reply, or pay.",
+  verification: {
+    google: "v63_hrbD4Ucz8bbYFLMl9qROIF0IU9_iCYyOsl0hqt8",
+  },
 }
 
 export const viewport: Viewport = {

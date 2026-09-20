@@ -1,755 +1,214 @@
-# 🛡️ SafeStep
+# SafeStep
 
-> **An AI-powered digital safety assistant that helps people understand suspicious digital content, recognize scam indicators, and make safer online decisions.**
+**AI-powered digital safety companion for understanding suspicious online content.**
 
-**Status:** 🚧 Active Development
+SafeStep helps users, especially older adults and less technical users, understand potentially suspicious screenshots and online messages through explainable AI analysis, risk scoring, clear guidance, and reassurance.
 
----
+### Live Demo
 
-## Overview
+🌐 **Frontend:** https://safestep-rust.vercel.app
 
-SafeStep is a backend-focused AI safety platform designed to help users, especially older adults, understand suspicious digital content.
 
-Instead of simply telling a user that something is **safe** or **unsafe**, SafeStep is designed to explain:
+## What SafeStep Does
 
-- What is happening
-- Why the content may be dangerous
-- Which risk indicators were detected
-- How severe the risk appears to be
-- What the user should do next
-- How the user can recognize similar scams in the future
+1. Upload a screenshot of a suspicious message, email, or website.
+2. SafeStep analyzes the content using a multimodal AI pipeline.
+3. Extracts relevant evidence from the content.
+4. Determines a risk level.
+5. Explains why the content may be suspicious.
+6. Provides clear next-step guidance.
+7. Provides reassurance without minimizing the potential risk.
+8. Stores the analysis in the user's history.
 
-The project combines AI-powered analysis with structured risk assessment and persistent analysis history.
 
----
+## Engineering Highlights
 
-## Why SafeStep?
+- Layered FastAPI backend using service and repository patterns
+- PostgreSQL with SQLAlchemy and Alembic migrations
+- JWT authentication with rotating refresh-token sessions
+- Ownership-based authorization for user resources
+- Cloudflare R2 object storage for uploaded images
+- Multimodal AI analysis pipeline
+- Deterministic risk scoring alongside AI-generated analysis
+- Audit logging for security-relevant actions
+- File validation and upload size/type enforcement
+- Transactional failure handling and storage cleanup
+- Automated test suite with pytest
+- Production deployment with Vercel and Render
+- Production PostgreSQL database
+- CORS-controlled frontend/backend communication
 
-Many security tools focus primarily on detection.
 
-SafeStep focuses on the **explanation layer**.
+                         ┌──────────────────────┐
+                         │      Next.js         │
+                         │      Frontend        │
+                         │       Vercel         │
+                         └──────────┬───────────┘
+                                    │ HTTPS
+                                    ▼
+                         ┌──────────────────────┐
+                         │       FastAPI        │
+                         │       Backend        │
+                         │       Render         │
+                         └──────────┬───────────┘
+                                    │
+              ┌─────────────────────┼─────────────────────┐
+              │                     │                     │
+              ▼                     ▼                     ▼
+       ┌──────────────┐      ┌──────────────┐      ┌──────────────┐
+       │ PostgreSQL   │      │ Cloudflare   │      │ AI Provider  │
+       │              │      │ R2           │      │              │
+       │ Users        │      │ Images       │      │ Vision       │
+       │ Sessions     │      │              │      │ Analysis     │
+       │ Analyses     │      └──────────────┘      └──────────────┘
+       │ Audit Logs   │
+       └──────────────┘
 
-A suspicious message can contain urgency, impersonation, credential requests, financial requests, suspicious links, or threats. Simply labeling the message as "dangerous" does not necessarily help the person understand what they should do next.
 
-SafeStep is being built around three questions:
 
-1. **What is happening?**
-2. **Why might it be dangerous?**
-3. **What should I do next?**
+## AI Analysis Pipeline
 
-The long-term goal is to make digital safety tools easier to understand and more useful to people who may not have a technical cybersecurity background.
-
----
-
-# Current Progress
-
-SafeStep is currently in active backend development.
-
-The core analysis workflow is now functional end-to-end:
+SafeStep separates AI interpretation from deterministic application logic.
 
 ```text
-Upload
-   │
-   ▼
-Validate Ownership
-   │
-   ▼
-Create Analysis
-   │
-   ▼
-Retrieve Image
-   │
-   ▼
-Build Prompt
-   │
-   ▼
-AI Orchestrator
-   │
-   ▼
-AI Provider
-   │
-   ▼
-Parse & Normalize Response
-   │
-   ▼
-Persist Results
-   │
-   ▼
-Analysis Completed
-```
+Uploaded Image
+      ↓
+File Validation
+      ↓
+Object Storage
+      ↓
+AI Vision Analysis
+      ↓
+Structured Evidence
+      ↓
+Risk Classification
+      ↓
+Deterministic Risk Scoring
+      ↓
+Guidance Generation
+      ↓
+Reassurance Generation
+      ↓
+Persist Analysis
 
-## Implemented
+
+
+
+### 6. Add the production section
+
+This is especially important now because **you actually deployed it**.
+
+```md
+## Production Deployment
+
+SafeStep is deployed as a production web application.
+
+| Component | Platform |
+|---|---|
+| Frontend | Vercel |
+| Backend | Render |
+| Database | Render PostgreSQL |
+| Object Storage | Cloudflare R2 |
+| Source Control | GitHub |
+
+### Production URLs
+
+- Frontend: https://safestep-rust.vercel.app
+- Backend API: https://safestep-api-p5fv.onrender.com
+- API Health Check: https://safestep-api-p5fv.onrender.com/health
+
+
+
+### 6. Add the production section
+
+This is especially important now because **you actually deployed it**.
+
+```md
+## Production Deployment
+
+SafeStep is deployed as a production web application.
+
+| Component | Platform |
+|---|---|
+| Frontend | Vercel |
+| Backend | Render |
+| Database | Render PostgreSQL |
+| Object Storage | Cloudflare R2 |
+| Source Control | GitHub |
+
+### Production URLs
+
+- Frontend: https://safestep-rust.vercel.app
+- Backend API: https://safestep-api-p5fv.onrender.com
+- API Health Check: https://safestep-api-p5fv.onrender.com/health
+
+
+## Local Development
+
+### Prerequisites
+
+- Python 3.11+
+- Node.js
+- pnpm 11+
+- PostgreSQL
+- Cloudflare R2 account
+- AI provider API credentials
 
 ### Backend
 
-- FastAPI application
-- Modular backend architecture
-- Dependency injection
-- REST API endpoints
-- Environment-based configuration
-- Global exception handling
-- Async application flow
-
-### Authentication & Authorization
-
-- User registration
-- User login
-- JWT access tokens
-- JWT refresh tokens
-- Refresh token persistence
-- Password hashing
-- Bearer token authentication
-- Protected API endpoints
-- User ownership validation
-
-### Database
-
-- PostgreSQL
-- Async SQLAlchemy
-- SQLAlchemy ORM models
-- Repository pattern
-- Async database sessions
-- UUID-based entities
-- Database relationships
-- Domain enums
-- Soft-delete architecture
-- Transaction management
-
-### Database Migrations
-
-- Alembic integration
-- Autogenerated migrations
-- Migration version tracking
-- Schema synchronization between SQLAlchemy models and PostgreSQL
-
-### File Uploads
-
-- Authenticated file uploads
-- Upload ownership validation
-- Upload metadata persistence
-- Local file storage
-- Configurable upload directory
-- Configurable upload size limits
-
-### AI Analysis
-
-- AI provider abstraction
-- AI orchestration layer
-- NVIDIA AI integration
-- Provider fallback architecture
-- Provider-level error handling
-- Multimodal image analysis
-- Prompt construction
-- Structured AI response schema
-- AI response normalization
-- Handling of non-JSON model responses
-- Risk-level extraction
-- Risk-factor extraction
-
-A key design decision is that the rest of the application does **not** directly depend on a specific AI vendor.
-
-```text
-                    AI Orchestrator
-                          │
-              ┌───────────┴───────────┐
-              ▼                       ▼
-       Primary Provider        Fallback Provider
-              │
-              ▼
-        Raw AI Response
-              │
-              ▼
-       Response Parser
-              │
-              ▼
-       AIResponseSchema
-```
-
-This allows AI providers to be replaced or additional providers to be introduced without tightly coupling the application to a single vendor.
-
----
-
-# Risk Analysis
-
-SafeStep currently models the following risk factors:
-
-- Urgency language
-- Threat language
-- Credential requests
-- Financial requests
-- Suspicious links
-- Suspicious domains
-- Brand impersonation
-- Unknown senders
-- Login forms
-- Payment requests
-- Reward language
-- Unrealistic pricing
-
-### Risk Levels
-
-```text
-SAFE
-LOW
-MEDIUM
-HIGH
-VERY_HIGH
-```
-
-Risk information is persisted alongside the generated analysis so that results can be retrieved and reviewed later.
-
----
-
-# Analysis Persistence
-
-Each completed analysis can persist:
-
-- Analysis status
-- AI-generated summary
-- Explanation
-- Guidance
-- Reassurance
-- Risk level
-- Individual risk factors
-- Risk scores
-- AI model information
-- Token usage metadata
-
-The analysis lifecycle is represented as:
-
-```text
-             ┌──────────────┐
-             │    PENDING   │
-             └──────┬───────┘
-                    │
-             ┌──────┴───────┐
-             ▼              ▼
-       ┌───────────┐   ┌───────────┐
-       │ COMPLETED │   │  FAILED   │
-       └───────────┘   └───────────┘
-```
-
----
-
-# AI Analysis Pipeline
-
-The current image-analysis workflow is:
-
-```text
-Upload Image
-     │
-     ▼
-Validate Ownership
-     │
-     ▼
-Create Analysis
-     │
-     ▼
-Retrieve Image
-     │
-     ▼
-Build Prompt
-     │
-     ▼
-AI Orchestrator
-     │
-     ▼
-NVIDIA Vision Model
-     │
-     ▼
-Raw AI Response
-     │
-     ▼
-AI Response Parser
-     │
-     ▼
-AIResponseSchema
-     │
-     ├── Summary
-     ├── Risk Level
-     ├── Explanation
-     ├── Guidance
-     ├── Reassurance
-     └── Risk Factors
-     │
-     ▼
-Persist Results
-     │
-     ▼
-Analysis COMPLETED
-```
-
-## AI Response Normalization
-
-One of the engineering challenges in SafeStep is dealing with the fact that AI providers do not always return responses in exactly the structure requested by the application.
-
-Instead of allowing inconsistent model output to propagate through the system, SafeStep normalizes provider responses into a validated internal schema.
-
-```text
-AI Provider
-    │
-    ▼
-Raw Response
-    │
-    ▼
-Parser
-    │
-    ▼
-Validation
-    │
-    ▼
-AIResponseSchema
-    │
-    ▼
-Application Services
-```
-
-This creates a stable contract between the AI layer and the rest of the backend.
-
----
-
-# API
-
-The backend currently exposes authenticated endpoints for the main application workflows.
-
-## Authentication
-
-```text
-POST /auth/register
-POST /auth/login
-POST /auth/refresh
-```
-
-## Uploads
-
-```text
-POST /uploads
-```
-
-## Analysis
-
-```text
-POST /analyses/{upload_id}
-```
-
-The analysis endpoint performs the complete analysis workflow and returns a response similar to:
-
-```json
-{
-  "analysis_id": "uuid",
-  "upload_id": "uuid",
-  "status": "completed",
-  "message": "Analysis completed successfully."
-}
-```
-
-Interactive API documentation is available through FastAPI's generated OpenAPI documentation when the application is running:
-
-```text
-http://127.0.0.1:8000/docs
-```
-
----
-
-# Database Architecture
-
-SafeStep uses PostgreSQL with asynchronous SQLAlchemy.
-
-The core domain relationships are:
-
-```text
-User
- │
- ├── Sessions
- │
- └── Uploads
-       │
-       └── Analysis
-            │
-            ├── AIResult
-            │
-            └── RiskScores
-```
-
-Additional domain entities include:
-
-```text
-User
-├── Sessions
-├── Uploads
-├── Analyses
-├── Audit Logs
-│
-Analysis
-├── AI Result
-└── Risk Scores
-```
-
-Alembic is used to manage database schema changes and maintain migration history.
-
----
-
-# Technology Stack
-
-| Layer | Technology |
-|---|---|
-| Language | Python |
-| Backend | FastAPI |
-| Database | PostgreSQL |
-| ORM | SQLAlchemy |
-| Database Driver | asyncpg |
-| Migrations | Alembic |
-| Validation | Pydantic |
-| Authentication | JWT |
-| Password Security | pwdlib |
-| AI | NVIDIA AI |
-| AI Architecture | Provider abstraction + orchestration |
-| Testing | pytest |
-| API Documentation | OpenAPI / Swagger |
-| Frontend | Next.js + TypeScript *(planned)* |
-| OCR | *(planned)* |
-| Deployment | Docker *(planned)* |
-| CI/CD | GitHub Actions *(planned)* |
-
----
-
-# Engineering Architecture
-
-SafeStep follows a modular backend architecture with clear separation of responsibilities.
-
-```text
-                         API
-                          │
-                          ▼
-                       Services
-                          │
-                          ▼
-                     Repositories
-                          │
-                          ▼
-                      PostgreSQL
-```
-
-For AI analysis:
-
-```text
-AnalysisService
-       │
-       ▼
-AIOrchestrator
-       │
-       ├── Primary AI Provider
-       │
-       └── Fallback AI Provider
-       │
-       ▼
-Response Parser
-       │
-       ▼
-AIResponseSchema
-       │
-       ├── AI Result
-       │
-       └── Risk Scores
-```
-
-This separation keeps API routing, business logic, persistence, and AI provider concerns from becoming tightly coupled.
-
----
-
-# Engineering Practices
-
-The project currently incorporates:
-
-- Asynchronous Python
-- Dependency injection
-- Service layer architecture
-- Repository pattern
-- Domain-oriented models
-- Typed Pydantic schemas
-- JWT authentication
-- Password hashing
-- Environment-based secrets
-- Transaction management
-- Explicit error handling
-- Automated testing
-- Database migrations
-- AI provider abstraction
-- AI output normalization
-- Ownership validation
-- Persistent analysis results
-
----
-
-# Testing
-
-SafeStep uses `pytest` for automated testing.
-
-Current test coverage includes:
-
-- AI response parsing
-- Risk-level parsing
-- Malformed AI responses
-- Missing AI response sections
-- AI provider orchestration
-- Provider fallback behavior
-- Analysis service
-- Error handling
-- Analysis failure handling
-
-Run the complete test suite:
-
 ```bash
-python -m pytest -v
-```
-
-Run AI parser tests:
-
-```bash
-python -m pytest backend/tests/ai/test_parser.py -v
-```
-
-Run AI orchestrator tests:
-
-```bash
-python -m pytest backend/tests/ai/test_orchestrator.py -v
-```
-
-Run analysis service tests:
-
-```bash
-python -m pytest backend/tests/services/test_analysis_service.py -v
-```
-
----
-
-# Project Structure
-
-```text
-SafeStep/
-│
-├── alembic/
-│   └── versions/
-│
-├── backend/
-│   ├── app/
-│   │   ├── ai/
-│   │   │   ├── providers/
-│   │   │   ├── orchestrator.py
-│   │   │   ├── parser.py
-│   │   │   ├── prompts.py
-│   │   │   └── schemas.py
-│   │   │
-│   │   ├── api/
-│   │   ├── core/
-│   │   ├── database/
-│   │   ├── enums/
-│   │   ├── models/
-│   │   ├── repositories/
-│   │   ├── schemas/
-│   │   ├── services/
-│   │   └── main.py
-│   │
-│   └── tests/
-│       ├── ai/
-│       └── services/
-│
-├── frontend/
-│
-├── docs/
-│
-├── .gitignore
-├── README.md
-└── LICENSE
-```
-
----
-
-# Getting Started
-
-## 1. Clone the repository
-
-```bash
-git clone https://github.com/SharifWaqas/safestep
+git clone https://github.com/SharifWaqas/safestep.git
 cd safestep
-```
 
-## 2. Create a virtual environment
-
-### Windows
-
-```bash
 python -m venv .venv
-.venv\Scripts\activate
-```
+# activate virtual environment
 
-### macOS / Linux
-
-```bash
-python -m venv .venv
-source .venv/bin/activate
-```
-
-## 3. Install dependencies
-
-```bash
 pip install -r requirements.txt
-```
 
-## 4. Configure environment variables
-
-Create a `.env` file in the project root.
-
-Example configuration:
-
-```env
-DB_HOST=
-DB_PORT=
-DB_NAME=
-DB_USER=
-DB_PASSWORD=
-
-JWT_SECRET=
-JWT_ALGORITHM=
-ACCESS_TOKEN_EXPIRE_MINUTES=
-REFRESH_TOKEN_EXPIRE_DAYS=
-
-UPLOAD_DIRECTORY=
-MAX_UPLOAD_SIZE=
-
-NVIDIA_API_KEY=
-NVIDIA_MODEL=
-```
-
-Never commit `.env` files or API keys to the repository.
-
-## 5. Run database migrations
-
-```bash
 python -m alembic upgrade head
-```
 
-## 6. Start the backend
+python -m uvicorn backend.app.main:app --reload
+
+
+cd frontend
+pnpm install
+pnpm dev
+
+NEXT_PUBLIC_API_URL=http://127.0.0.1:8000
+NEXT_PUBLIC_USE_MOCKS=false
+
+
+
+### 8. Add testing
+
+```md
+## Testing
+
+Backend tests are run with:
 
 ```bash
-python -m uvicorn backend.app.main:app --reload
-```
+python -m pytest
 
-The API will be available at:
 
-```text
-http://127.0.0.1:8000
-```
+### 9. Add a security section
 
-Swagger documentation:
+```md
+## Security
 
-```text
-http://127.0.0.1:8000/docs
-```
+SafeStep includes:
 
----
+- JWT access and refresh tokens
+- Refresh-token rotation
+- Hashed refresh tokens stored server-side
+- Row-level ownership checks
+- File type and size validation
+- Controlled CORS origins
+- Audit logging
+- Secrets managed through environment variables
+- Production database migrations through Alembic
 
-# Roadmap
+## Why SafeStep?
 
-## Backend
+The goal is not simply to build another AI wrapper.
 
-- [x] Repository setup
-- [x] Backend architecture
-- [x] Database design
-- [x] SQLAlchemy models
-- [x] PostgreSQL integration
-- [x] Alembic migrations
-- [x] Authentication
-- [x] JWT access tokens
-- [x] JWT refresh tokens
-- [x] Authorization
-- [x] Upload service
-- [x] Local file storage
-- [x] AI provider abstraction
-- [x] NVIDIA AI integration
-- [x] AI orchestration
-- [x] AI response parser
-- [x] Risk factor extraction
-- [x] Risk score persistence
-- [x] Analysis persistence
-- [x] Automated tests
-- [ ] Analysis retrieval endpoint
-- [ ] Analysis history
-- [ ] Audit logging integration
-
-## AI
-
-- [x] Multimodal image analysis
-- [x] AI response normalization
-- [x] Risk-level extraction
-- [x] Risk-factor extraction
-- [x] Provider fallback architecture
-- [ ] OCR pipeline
-- [ ] Additional AI providers
-- [ ] Improved risk scoring
-- [ ] More advanced guidance generation
-
-## Infrastructure
-
-- [ ] Docker
-- [ ] CI/CD
-- [ ] Production deployment
-- [ ] Cloud object storage
-- [ ] Monitoring
-- [ ] Structured application logging
-
-## Product
-
-- [ ] Email analysis
-- [ ] SMS analysis
-- [ ] Website analysis
-- [ ] Personalized guidance
-- [ ] Digital literacy education
-- [ ] Analysis history UI
-- [ ] Accessibility-focused frontend
-- [ ] Authentication UI
-- [ ] Public MVP release
-
----
-
-# Project Goals
-
-SafeStep is being developed to demonstrate practical experience with:
-
-- Backend software engineering
-- API design
-- Asynchronous Python
-- Database architecture
-- Authentication and authorization
-- AI integration
-- AI provider abstraction
-- AI output normalization
-- Risk analysis
-- Software testing
-- Database migrations
-- Secure file handling
-- Modular application architecture
-
-The project is also intended to serve as a practical exploration of how AI systems can be integrated into a production-style backend without allowing model-specific behavior to leak into the rest of the application.
-
----
-
-# Contributing
-
-Contributions, suggestions, and feedback are welcome.
-
-As development continues, issues and feature requests can be used to track improvements and future work.
-
----
-
-# License
-
-This project is licensed under the MIT License.
-
----
-
-# Disclaimer
-
-SafeStep is an educational and research project currently under active development.
-
-AI-generated analyses are intended to assist users and should not be considered professional legal, cybersecurity, medical, or financial advice.
+SafeStep is designed as an example of how AI can be integrated into a real software system with authentication, persistence, storage, security controls, deterministic business logic, accessibility, testing, and production infrastructure.
