@@ -46,3 +46,9 @@ class AnalysisAlreadyExistsError(Exception):
         
 class AnalysisNotFoundError(Exception):
     pass
+
+class UploadHasAnalysisError(Exception):
+    def __init__(self):
+        super().__init__(
+            "This upload cannot be deleted because it has an existing analysis."
+        )

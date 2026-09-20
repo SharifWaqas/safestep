@@ -12,6 +12,7 @@ from backend.app.models.upload import Upload
 from backend.app.models.user import User
 
 from backend.app.repositories.upload_repository import UploadRepository
+from backend.app.repositories.analysis_repository import AnalysisRepository
 
 from backend.app.schemas.upload import (
     UploadResponse,
@@ -25,6 +26,7 @@ from backend.app.services.exceptions import (
     InvalidFileTypeError,
     FileTooLargeError,
     UploadNotFoundError,
+    UploadHasAnalysisError,
 )
 from backend.app.services.storage_service import StorageService
 
@@ -35,11 +37,13 @@ class UploadService:
         self,
         session: AsyncSession,
         upload_repository: UploadRepository,
+        analysis_repository: AnalysisRepository,
         storage_service: StorageService,
         audit_log_service: AuditLogService,
     ) -> None:
         self._session = session
         self._upload_repository = upload_repository
+        self._analysis_repository = analysis_repository
         self._storage_service = storage_service
         self._audit_log_service = audit_log_service
 
@@ -162,6 +166,13 @@ class UploadService:
             )
 
             raise UploadNotFoundError()
+
+        analysis = await self._analysis_repository.get_by_upload_id(
+            upload_id
+        )
+
+        if analysis is not None:
+            raise UploadHasAnalysisError()
 
         await self._upload_repository.delete(upload)
 

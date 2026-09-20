@@ -11,6 +11,7 @@ from backend.app.services.exceptions import (
     SessionRevokedError,
     TokenVerificationError,
     UploadNotFoundError,
+    UploadHasAnalysisError
 )
 
 
@@ -72,6 +73,7 @@ def register_exception_handlers(app: FastAPI) -> None:
     conflict_exceptions = (
         EmailAlreadyExistsError,
         AnalysisAlreadyExistsError,
+        UploadHasAnalysisError
     )
 
     not_found_exceptions = (

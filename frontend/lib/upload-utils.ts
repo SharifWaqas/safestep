@@ -1,12 +1,9 @@
 export const ACCEPTED_IMAGE_TYPES = [
   'image/png',
   'image/jpeg',
-  'image/webp',
-  'image/heic',
-  'image/heif',
 ] as const
 
-export const ACCEPTED_LABEL = 'PNG, JPG, WEBP or HEIC'
+export const ACCEPTED_LABEL = 'PNG or JPG'
 export const MAX_FILE_BYTES = 10 * 1024 * 1024 // 10 MB
 
 export function formatFileSize(bytes: number): string {
@@ -19,12 +16,15 @@ export function formatFileSize(bytes: number): string {
 export function validateImageFile(file: File): string | null {
   const typeOk =
     (ACCEPTED_IMAGE_TYPES as readonly string[]).includes(file.type) ||
-    /\.(png|jpe?g|webp|heic|heif)$/i.test(file.name)
+    /\.(png|jpe?g)$/i.test(file.name)
+
   if (!typeOk) {
     return `That file type is not supported. Please upload an image (${ACCEPTED_LABEL}).`
   }
+
   if (file.size > MAX_FILE_BYTES) {
     return 'That image is too large. Please choose one under 10 MB.'
   }
+
   return null
 }

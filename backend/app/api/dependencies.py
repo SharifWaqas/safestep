@@ -88,6 +88,7 @@ async def get_upload_service(
 ) -> UploadService:
 
     upload_repository = UploadRepository(session)
+    analysis_repository = AnalysisRepository(session)
 
     storage_service = StorageService(
         account_id=settings.R2_ACCOUNT_ID,
@@ -105,6 +106,7 @@ async def get_upload_service(
     return UploadService(
         session=session,
         upload_repository=upload_repository,
+        analysis_repository=analysis_repository,
         storage_service=storage_service,
         audit_log_service=audit_log_service,
     )
