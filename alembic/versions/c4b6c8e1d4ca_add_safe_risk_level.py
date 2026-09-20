@@ -7,7 +7,6 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import postgresql
 
 
-# revision identifiers, used by Alembic.
 revision: str = "c4b6c8e1d4ca"
 down_revision: Union[str, Sequence[str], None] = None
 branch_labels: Union[str, Sequence[str], None] = None
@@ -15,8 +14,6 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    bind = op.get_bind()
-
     risk_level = sa.Enum(
         "LOW",
         "MEDIUM",
@@ -42,16 +39,12 @@ def upgrade() -> None:
     )
 
     analysis_status = sa.Enum(
-        "PENDING",
-        "PROCESSING",
-        "COMPLETED",
-        "FAILED",
+        "pending",
+        "processing",
+        "completed",
+        "failed",
         name="analysis_status",
     )
-
-    risk_level.create(bind, checkfirst=True)
-    risk_factor.create(bind, checkfirst=True)
-    analysis_status.create(bind, checkfirst=True)
 
     op.create_table(
         "users",
@@ -62,13 +55,11 @@ def upgrade() -> None:
             "is_verified",
             sa.Boolean(),
             nullable=False,
-            server_default=sa.text("false"),
         ),
         sa.Column(
             "is_active",
             sa.Boolean(),
             nullable=False,
-            server_default=sa.text("true"),
         ),
         sa.Column(
             "deleted_at",
@@ -89,7 +80,7 @@ def upgrade() -> None:
             nullable=False,
         ),
         sa.PrimaryKeyConstraint("id"),
-        sa.UniqueConstraint("email", name="uq_users_email"),
+        sa.UniqueConstraint("email"),
     )
 
     op.create_table(
@@ -175,7 +166,7 @@ def upgrade() -> None:
             "status",
             analysis_status,
             nullable=False,
-            server_default="PENDING",
+            server_default="pending",
         ),
         sa.Column(
             "started_at",
@@ -214,7 +205,7 @@ def upgrade() -> None:
 
     op.create_table(
         "ai_results",
-        sa.Column("analysis_id", sa.UUID(), nullable=False),
+        sa.Column("analysis_id", sa.UUID(), nullable=False, unique=True),
         sa.Column("summary", sa.Text(), nullable=False),
         sa.Column("explanation", sa.Text(), nullable=False),
         sa.Column("guidance", sa.Text(), nullable=False),
@@ -262,10 +253,6 @@ def upgrade() -> None:
             ["analyses.id"],
         ),
         sa.PrimaryKeyConstraint("id"),
-        sa.UniqueConstraint(
-            "analysis_id",
-            name="uq_ai_results_analysis_id",
-        ),
     )
 
     op.create_table(
