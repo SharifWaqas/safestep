@@ -174,20 +174,25 @@ class UploadService:
         if analysis is not None:
             raise UploadHasAnalysisError()
 
-        await self._upload_repository.delete(upload)
+        try:
+            await self._storage_service.delete_file(
+                upload.storage_path
+            )
 
-        await self._audit_log_service.log(
-            action=AuditAction.UPLOAD_DELETED,
-            resource_type=AuditResourceType.UPLOAD,
-            resource_id=upload.id,
-            actor_user_id=user.id,
-        )
+            await self._upload_repository.delete(upload)
 
-        await self._session.commit()
+            await self._audit_log_service.log(
+                action=AuditAction.UPLOAD_DELETED,
+                resource_type=AuditResourceType.UPLOAD,
+                resource_id=upload.id,
+                actor_user_id=user.id,
+            )
 
-        await self._storage_service.delete_file(
-            upload.storage_path
-        )
+            await self._session.commit()
+
+        except Exception:
+            await self._session.rollback()
+            raise
 
         return DeleteUploadResponse(
             upload_id=upload.id,

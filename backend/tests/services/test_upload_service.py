@@ -587,3 +587,43 @@ async def test_list_uploads_returns_empty_list_when_no_uploads(
     )
 
     assert result == []
+
+
+@pytest.mark.asyncio
+async def test_delete_upload_rolls_back_when_storage_delete_fails(
+    upload_service,
+    db_session,
+    upload_repository,
+    analysis_repository,
+    storage_service,
+    audit_log_service,
+    user,
+):
+    upload_id = uuid4()
+
+    upload = MagicMock(spec=Upload)
+    upload.id = upload_id
+    upload.user_id = user.id
+    upload.storage_path = "uploads/test-id.jpg"
+
+    upload_repository.get_by_id.return_value = upload
+    analysis_repository.get_by_upload_id.return_value = None
+
+    storage_service.delete_file.side_effect = RuntimeError(
+        "R2 deletion failed"
+    )
+
+    with pytest.raises(RuntimeError, match="R2 deletion failed"):
+        await upload_service.delete_upload(
+            user=user,
+            upload_id=upload_id,
+        )
+
+    storage_service.delete_file.assert_awaited_once_with(
+        upload.storage_path
+    )
+
+    upload_repository.delete.assert_not_awaited()
+    audit_log_service.log.assert_not_awaited()
+    db_session.commit.assert_not_awaited()
+    db_session.rollback.assert_awaited_once()
