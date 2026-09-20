@@ -16,7 +16,9 @@ class Session(Base):
     )
 
     refresh_token_hash: Mapped[str] = mapped_column(
-        nullable=False, type_=Text
+    nullable=False,
+    type_=Text,
+    unique=True,
     )
 
     ip_address: Mapped[str | None] = mapped_column(

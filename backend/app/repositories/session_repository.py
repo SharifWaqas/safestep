@@ -12,11 +12,15 @@ class SessionRepository(BaseRepository[Session]):
         super().__init__(db_session=db_session, model=Session)
 
 
-    async def find_by_refresh_token_hash(self, refresh_token_hash : str) -> Session | None:
-        query = ( 
+    async def find_by_refresh_token_hash(
+        self,
+        refresh_token_hash: str,
+    ) -> Session | None:
+        query = (
             select(self._model)
             .options(joinedload(self._model.user))
             .where(self._model.refresh_token_hash == refresh_token_hash)
+            .with_for_update()
         )
         result = await self._db_session.execute(query)
         return result.scalar_one_or_none()
