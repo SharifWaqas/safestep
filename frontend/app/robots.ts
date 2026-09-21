@@ -6,6 +6,6 @@ export default function robots(): MetadataRoute.Robots {
       userAgent: "*",
       allow: "/",
     },
-    sitemap: "https://safestep-rust.vercel.app/sitemap.xml",
+    sitemap: "https://www.usesafestep.com/sitemap.xml",
   };
 }
