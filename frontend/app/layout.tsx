@@ -5,7 +5,6 @@ import { Toaster } from '@/components/ui/sonner'
 import { AuthProvider } from '@/components/auth/auth-provider'
 import { AccessibilityProvider } from '@/components/settings/accessibility-provider'
 import './globals.css'
-import type { Metadata } from "next";
 
 const publicSans = Public_Sans({
   subsets: ['latin'],
