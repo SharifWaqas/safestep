@@ -49,7 +49,7 @@ export default function RootLayout({
           <AuthProvider>{children}</AuthProvider>
         </AccessibilityProvider>
         <Toaster position="top-center" />
-        {process.env.NODE_ENV === 'production' && <Analytics />}
+        <Analytics />
       </body>
     </html>
   )
