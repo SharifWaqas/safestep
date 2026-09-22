@@ -709,7 +709,7 @@ Therefore, automated unit/service/repository coverage should not be interpreted 
 
 # Docker
 
-Docker is part of the planned local development environment for SafeStep.
+SafeStep includes a Dockerized local development environment for the backend and PostgreSQL.
 
 The initial Docker architecture is intentionally limited to the backend and PostgreSQL:
 
@@ -723,81 +723,6 @@ Docker Compose
     └── PostgreSQL
          │
          └── Persistent Volume
-```
-
-The frontend will continue to be deployed through Vercel rather than being unnecessarily containerized for local development.
-
-### Planned Docker Components
-
-The Docker setup will include:
-
-```text
-Dockerfile
-docker-compose.yml
-.dockerignore
-```
-
-The API image will be based on:
-
-```text
-Python 3.11 slim
-```
-
-The container will:
-
-* Install backend dependencies
-* Run FastAPI with Uvicorn
-* Use a non-root application user
-* Receive configuration through environment variables
-* Avoid embedding secrets in the image
-
-PostgreSQL will use a persistent Docker volume so database data survives container recreation.
-
-### Planned Local Architecture
-
-```text
-                  Docker Compose
-                       │
-            ┌──────────┴──────────┐
-            │                     │
-            ▼                     ▼
-        FastAPI API          PostgreSQL
-          :8000                  :5432
-            │
-       ┌────┴─────┐
-       ▼          ▼
-      R2       AI Provider
-   external     external
-```
-
-The Dockerized backend will continue to use Cloudflare R2 and the configured AI provider through environment variables.
-
-### Docker Development Commands
-
-Once the Docker setup is implemented and validated:
-
-```powershell
-docker compose build
-docker compose up
-```
-
-The API will be available at:
-
-```text
-http://localhost:8000
-```
-
-Health endpoint:
-
-```text
-http://localhost:8000/health
-```
-
-Database migrations will be applied using the existing Alembic migration system.
-
-The Docker setup will be validated before being considered part of the project's working development workflow.
-
----
 
 # Production Deployment
 
