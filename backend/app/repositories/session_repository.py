@@ -1,6 +1,6 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import selectinload
 
 from backend.app.models.session import Session
 from backend.app.repositories.base_repository import BaseRepository
@@ -18,7 +18,7 @@ class SessionRepository(BaseRepository[Session]):
     ) -> Session | None:
         query = (
             select(self._model)
-            .options(joinedload(self._model.user))
+            .options(selectinload(self._model.user))
             .where(self._model.refresh_token_hash == refresh_token_hash)
             .with_for_update()
         )
