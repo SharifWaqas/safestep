@@ -123,9 +123,12 @@ async def test_create_analysis_success(
         RiskLevel.MEDIUM
     )
 
+    request_id = "test-request-123"
+
     response = await service.create_analysis(
         user=user,
         upload_id=upload_id,
+        request_id=request_id,
     )
 
     assert response.analysis_id is not None
@@ -149,10 +152,13 @@ async def test_create_analysis_success(
     service._prompt_builder.build.assert_called_once()
 
     service._ai_orchestrator.analyze_image.assert_awaited_once_with(
-        image_bytes=b"image-bytes",
-        mime_type=upload.content_type,
-        prompt="Analyze this image.",
-    )
+    image_bytes=b"image-bytes",
+    mime_type=upload.content_type,
+    prompt="Analyze this image.",
+    analysis_id=str(response.analysis_id),
+    user_id=user.id,
+    request_id=request_id,
+)
 
     service._risk_scoring_service.score_factors.assert_called_once_with(
         ai_result.risk_factors

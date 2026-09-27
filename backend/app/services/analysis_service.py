@@ -1,10 +1,13 @@
 from datetime import datetime, timezone
+import time
 from uuid import UUID, uuid4
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.ai.orchestrator import AIOrchestrator
 from backend.app.ai.prompts import PromptBuilder
+
+from backend.app.core.telemetry import send_telemetry_in_background
 
 from backend.app.enums.analysis import AnalysisStatus
 from backend.app.enums.audit_action import AuditAction
@@ -63,7 +66,11 @@ class AnalysisService:
         self,
         user: User,
         upload_id: UUID,
+        request_id: str = "unknown",
     ) -> CreateAnalysisResponse:
+
+        # Measure the entire analysis workflow.
+        analysis_start_time = time.perf_counter()
 
         upload = await self._upload_repository.get_by_id_and_user(
             upload_id,
@@ -113,10 +120,29 @@ class AnalysisService:
 
             prompt = self._prompt_builder.build()
 
+            # Measure the actual AI/orchestrator duration separately.
+            ai_start_time = time.perf_counter()
+
             result = await self._ai_orchestrator.analyze_image(
                 image_bytes=image_bytes,
                 mime_type=upload.content_type,
                 prompt=prompt,
+                analysis_id=str(analysis.id),
+                user_id=user.id,
+                request_id=request_id,
+            )
+
+            ai_duration_ms = (
+                time.perf_counter() - ai_start_time
+            ) * 1000
+
+            send_telemetry_in_background(
+                route="/analyses/{upload_id}",
+                method="POST",
+                status=200,
+                duration_ms=round(ai_duration_ms, 2),
+                request_id=request_id,
+                action="ai_analysis_completed",
             )
 
             scored_factors = self._risk_scoring_service.score_factors(
@@ -168,6 +194,20 @@ class AnalysisService:
 
             await self._session.commit()
 
+            # Measure total end-to-end analysis duration.
+            analysis_duration_ms = (
+                time.perf_counter() - analysis_start_time
+            ) * 1000
+
+            send_telemetry_in_background(
+                route="/analyses/{upload_id}",
+                method="POST",
+                status=200,
+                duration_ms=round(analysis_duration_ms, 2),
+                request_id=request_id,
+                action="analysis_completed",
+            )
+
             return CreateAnalysisResponse(
                 analysis_id=analysis.id,
                 upload_id=analysis.upload_id,
@@ -178,6 +218,20 @@ class AnalysisService:
         except Exception:
             analysis.status = AnalysisStatus.FAILED
             analysis.completed_at = datetime.now(timezone.utc)
+
+            # Measure total time until failure.
+            analysis_duration_ms = (
+                time.perf_counter() - analysis_start_time
+            ) * 1000
+
+            send_telemetry_in_background(
+                route="/analyses/{upload_id}",
+                method="POST",
+                status=500,
+                duration_ms=round(analysis_duration_ms, 2),
+                request_id=request_id,
+                action="analysis_failed",
+            )
 
             await self._session.rollback()
 

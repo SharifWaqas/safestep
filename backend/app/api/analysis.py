@@ -1,20 +1,17 @@
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 
 from backend.app.api.dependencies import (
     get_analysis_service,
     get_current_user,
 )
-
 from backend.app.models.user import User
-
 from backend.app.schemas.analysis import (
     AnalysisResponse,
     CreateAnalysisResponse,
 )
-
 from backend.app.services.analysis_service import AnalysisService
 
 
@@ -29,6 +26,7 @@ router = APIRouter(
     response_model=CreateAnalysisResponse,
 )
 async def create_analysis(
+    request: Request,
     upload_id: UUID,
     user: Annotated[
         User,
@@ -39,9 +37,16 @@ async def create_analysis(
         Depends(get_analysis_service),
     ],
 ):
+    request_id = getattr(
+        request.state,
+        "request_id",
+        "unknown",
+    )
+
     return await analysis_service.create_analysis(
-        user,
-        upload_id,
+        user=user,
+        upload_id=upload_id,
+        request_id=request_id,
     )
 
 

@@ -37,6 +37,9 @@ class Settings(BaseSettings):
     OPENAI_MODEL: str
 
     CORS_ORIGINS: str = "http://localhost:3000"
+    LOG_ANALYTICS_URL: str = "http://127.0.0.1:8001"
+    LOG_ANALYTICS_TIMEOUT: float = 1.0
+    DEPLOYMENT_ID: str = "local"
 
 
 settings = Settings()
