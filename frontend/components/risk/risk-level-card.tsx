@@ -42,11 +42,15 @@ const tone: Record<
 const STEP_ORDER = ['safe', 'low', 'medium', 'high', 'critical'] as const
 
 /**
- * The large, prominent risk-level component shown at the top of a result.
- * Communicates with an icon, a word, a plain-language sentence, and a
- * stepped severity meter (not color alone).
+ * Prominent risk summary shown at the top of an analysis result.
+ *
+ * The component communicates severity through text, iconography, and a
+ * stepped meter rather than relying on color alone.
  */
-export function RiskLevelCard({ level, className }: RiskLevelCardProps) {
+export function RiskLevelCard({
+  level,
+  className,
+}: RiskLevelCardProps) {
   const meta = getRiskMeta(level)
   const t = tone[meta.token]
   const Icon = RISK_LEVEL_ICON[meta.level]
@@ -55,53 +59,64 @@ export function RiskLevelCard({ level, className }: RiskLevelCardProps) {
   return (
     <section
       aria-labelledby="risk-level-heading"
-      className={cn('rounded-2xl border p-6 sm:p-8', t.wrap, className)}
+      className={cn(
+        'rounded-3xl border p-6 sm:p-8',
+        t.wrap,
+        className,
+      )}
     >
-      <p className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
-        Risk assessment
+      <p className="text-base font-bold tracking-tight text-foreground sm:text-lg">
+        How concerned should I be?
       </p>
-      <div className="mt-4 flex items-center gap-4 sm:gap-5">
+
+      <div className="mt-5 flex flex-col gap-5 sm:flex-row sm:items-center sm:gap-6">
         <span
           className={cn(
-            'flex size-16 shrink-0 items-center justify-center rounded-2xl sm:size-20',
+            'flex size-20 shrink-0 items-center justify-center rounded-2xl sm:size-24',
             t.iconWrap,
           )}
           aria-hidden="true"
         >
-          <Icon className="size-9 sm:size-11" />
+          <Icon className="size-10 sm:size-12" />
         </span>
+
         <div className="min-w-0">
           <h2
             id="risk-level-heading"
-            className="text-3xl font-extrabold tracking-tight sm:text-4xl"
+            className="text-4xl font-extrabold tracking-tight sm:text-5xl"
           >
             {meta.label}
           </h2>
-          <p className="mt-1 text-pretty text-lg text-foreground/80">
+
+          <p className="mt-2 max-w-2xl text-lg leading-8 text-foreground/85 sm:text-xl">
             {meta.description}
           </p>
         </div>
       </div>
 
-      {/* Stepped severity meter — 5 segments, filled by weight. */}
-      <div className="mt-6">
-        <div className="flex items-center gap-1.5" aria-hidden="true">
+      <div className="mt-7">
+        <div
+          className="flex items-center gap-2"
+          aria-hidden="true"
+        >
           {STEP_ORDER.map((_, i) => (
             <span
               key={i}
               className={cn(
-                'h-2.5 flex-1 rounded-full',
+                'h-3 flex-1 rounded-full',
                 i < activeSteps ? t.bar : 'bg-foreground/10',
               )}
             />
           ))}
         </div>
+
         <p className="sr-only">
-          Severity {activeSteps} out of 5.
+          Risk level {meta.label}. Severity {activeSteps} out of 5.
         </p>
-        <div className="mt-2 flex justify-between text-xs font-medium text-muted-foreground">
-          <span>Safe</span>
-          <span>Very high risk</span>
+
+        <div className="mt-2 flex justify-between text-sm font-semibold text-muted-foreground">
+          <span>Safer</span>
+          <span>More concerning</span>
         </div>
       </div>
     </section>

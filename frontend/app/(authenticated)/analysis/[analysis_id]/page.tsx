@@ -6,6 +6,7 @@ import { useParams } from 'next/navigation'
 
 import { analysesApi } from '@/lib/api/analyses'
 import type { Analysis } from '@/lib/api/types'
+import { AnalysisResult } from '@/components/analysis/analysis-result'
 
 export default function AnalysisPage() {
   const params = useParams()
@@ -109,109 +110,7 @@ export default function AnalysisPage() {
       </div>
 
       {result ? (
-        <div className="space-y-6">
-          {/* Risk level */}
-          <section className="rounded-2xl border bg-card p-6">
-            <p className="text-sm font-medium uppercase tracking-wide text-muted-foreground">
-              Risk level
-            </p>
-
-            <div className="mt-3 flex items-center gap-3">
-              <span className="rounded-full bg-primary/10 px-4 py-2 text-lg font-bold text-primary">
-                {result.risk_level.replace('_', ' ')}
-              </span>
-            </div>
-
-            <h2 className="mt-6 text-2xl font-bold">
-              {result.summary}
-            </h2>
-
-            <p className="mt-3 leading-7 text-muted-foreground">
-              {result.explanation}
-            </p>
-          </section>
-
-          {/* Guidance */}
-          <section className="rounded-2xl border bg-card p-6">
-            <h2 className="text-xl font-bold">
-              What you should do
-            </h2>
-
-            <p className="mt-3 leading-7 text-muted-foreground">
-              {result.guidance}
-            </p>
-          </section>
-
-          {/* Reassurance */}
-          <section className="rounded-2xl border bg-card p-6">
-            <h2 className="text-xl font-bold">
-              A little reassurance
-            </h2>
-
-            <p className="mt-3 leading-7 text-muted-foreground">
-              {result.reassurance}
-            </p>
-          </section>
-
-          {/* Risk factors */}
-          {analysis.risk_scores.length > 0 && (
-            <section className="rounded-2xl border bg-card p-6">
-              <h2 className="text-xl font-bold">
-                Why SafeStep flagged this
-              </h2>
-
-              <div className="mt-5 space-y-4">
-                {analysis.risk_scores.map((risk) => {
-                  const riskPercent = Math.round(risk.score * 100)
-
-                  return (
-                    <div
-                      key={risk.risk_factor}
-                      className="rounded-xl border p-4"
-                    >
-                      <div className="flex items-center justify-between gap-4">
-                        <p className="font-semibold">
-                          {risk.risk_factor
-                            .replaceAll('_', ' ')
-                            .replace(/\b\w/g, (letter) =>
-                              letter.toUpperCase(),
-                            )}
-                        </p>
-
-                        <span className="text-sm font-medium text-muted-foreground">
-                          {riskPercent}%
-                        </span>
-                      </div>
-
-                      <div
-                        className="mt-3 h-2 overflow-hidden rounded-full bg-muted"
-                        role="progressbar"
-                        aria-label={`${risk.risk_factor.replaceAll('_', ' ')} risk score`}
-                        aria-valuemin={0}
-                        aria-valuemax={100}
-                        aria-valuenow={riskPercent}
-                      >
-                        <div
-                          className="h-full rounded-full bg-primary"
-                          style={{
-                            width: `${Math.min(
-                              Math.max(risk.score * 100, 0),
-                              100,
-                            )}%`,
-                          }}
-                        />
-                      </div>
-
-                      <p className="mt-3 text-sm leading-6 text-muted-foreground">
-                        {risk.explanation}
-                      </p>
-                    </div>
-                  )
-                })}
-              </div>
-            </section>
-          )}
-        </div>
+        <AnalysisResult analysis={analysis} />
       ) : (
         <section className="rounded-2xl border bg-card p-6">
           <h2 className="text-xl font-bold">
